@@ -3,6 +3,12 @@
   "name": "SailorM Battlepass",
   "description": "Автоматизация задач и мини-игр battlepass на ReManga.",
   "version": "1.0.0",
+  "icons": {
+    "16": "images/icon_16.png",
+    "32": "images/icon_32.png",
+    "48": "images/icon_48.png",
+    "128": "images/icon_128.png"
+  },
   "permissions": [
     "storage",
     "tabs",
