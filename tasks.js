@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const smb = window.SMBP;
   if (!smb) return;
 
@@ -45,12 +45,12 @@
     'machines_'
   ];
   const CARD_UPGRADE_TYPES = {
-    common: { id: 1, label: 'Обычный', required: 2 },
-    exclusive: { id: 2, label: 'Эксклюзивный', required: 3 },
-    random: { id: 3, label: 'Рандомный', required: 3 }
+    common: { id: 1, label: 'РћР±С‹С‡РЅС‹Р№', required: 2 },
+    exclusive: { id: 2, label: 'Р­РєСЃРєР»СЋР·РёРІРЅС‹Р№', required: 3 },
+    random: { id: 3, label: 'Р Р°РЅРґРѕРјРЅС‹Р№', required: 3 }
   };
   const CARD_UPGRADE_BLOCKED_RANKS = new Set(['rank_re', 'rank_s']);
-  const EXCHANGE_SEED_USER_IDS = [];
+  const EXCHANGE_SEED_USER_IDS = [80189, 24, 627468, 78208, 47343, 474677];
   const COMMENT_SOURCE_DIRS = [
     'bad-born-blood',
     'omniscient-reader_',
@@ -60,13 +60,13 @@
   ];
   const TAG_ID_OVERRIDES = {
     categories: {
-      'животные компаньоны': 70
+      'Р¶РёРІРѕС‚РЅС‹Рµ РєРѕРјРїР°РЅСЊРѕРЅС‹': 70
     },
     genres: {}
   };
   const MANUAL_ONLY_TASK_NAMES = new Set([
-    'Давний знакомый',
-    'Больше золота'
+    'Р”Р°РІРЅРёР№ Р·РЅР°РєРѕРјС‹Р№',
+    'Р‘РѕР»СЊС€Рµ Р·РѕР»РѕС‚Р°'
   ]);
   const TEMPORARY_BROKEN_EVENT_REASONS = new Map([]);
   const FILTER_QUERY_PAGES = 12;
@@ -159,7 +159,7 @@
     const names = (Array.isArray(rewards) ? rewards : [])
       .map(reward => String(reward?.reward_name || '').trim())
       .filter(Boolean);
-    if (!names.length) return 'Награда';
+    if (!names.length) return 'РќР°РіСЂР°РґР°';
     return names.join(', ');
   }
 
@@ -233,7 +233,7 @@
     const claimedRewards = [];
 
     for (const reward of state.claimableRewards) {
-      progressCb?.(`Забираю награду: ${reward.version} ${reward.level} уровень`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${reward.version} ${reward.level} СѓСЂРѕРІРµРЅСЊ`);
       await claimReward(reward.level, reward.version);
       claimed += 1;
       claimedRewards.push(reward);
@@ -252,7 +252,7 @@
     let claimed = 0;
 
     for (const task of state.readyTasks) {
-      progressCb?.(`Забираю: ${task.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ: ${task.name}`);
       await smb.claimTask(task.id);
       claimed += 1;
       await smb.sleep(150);
@@ -378,7 +378,7 @@
         if (Number(finalTask?.progress || 0) > currentProgress) {
           currentProgress = Number(finalTask.progress || 0);
           consecutiveNoProgress = 0;
-          progressCb?.(`Прогресс вырос: ${currentProgress} / ${goal}`);
+          progressCb?.(`РџСЂРѕРіСЂРµСЃСЃ РІС‹СЂРѕСЃ: ${currentProgress} / ${goal}`);
         } else if (onNoProgress) {
           consecutiveNoProgress += 1;
           progressCb?.(onNoProgress(item));
@@ -428,7 +428,7 @@
         if (Number(finalTask?.progress || 0) > currentProgress) {
           currentProgress = Number(finalTask.progress || 0);
           consecutiveNoProgress = 0;
-          progressCb?.(`Прогресс вырос: ${currentProgress} / ${goal}`);
+          progressCb?.(`РџСЂРѕРіСЂРµСЃСЃ РІС‹СЂРѕСЃ: ${currentProgress} / ${goal}`);
         } else if (onNoProgress) {
           noProgressItems.push(...batchItems);
           consecutiveNoProgress += batchItems.length;
@@ -436,7 +436,7 @@
           if (labels.length === 1) {
             progressCb?.(labels[0]);
           } else if (labels.length > 1) {
-            progressCb?.('Пакет выполнен без прироста прогресса.');
+            progressCb?.('РџР°РєРµС‚ РІС‹РїРѕР»РЅРµРЅ Р±РµР· РїСЂРёСЂРѕСЃС‚Р° РїСЂРѕРіСЂРµСЃСЃР°.');
           }
         }
 
@@ -498,7 +498,7 @@
   function isAutonomousMemoryTask(task) {
     if (AUTO_MEMORY_EVENTS.has(Number(task?.event))) return true;
     const text = smb.normalizeText(`${task?.name || ''} ${task?.description || ''}`);
-    return text.includes('найди пару') || text.includes('потренируйте память') || text.includes('найди его');
+    return text.includes('РЅР°Р№РґРё РїР°СЂСѓ') || text.includes('РїРѕС‚СЂРµРЅРёСЂСѓР№С‚Рµ РїР°РјСЏС‚СЊ') || text.includes('РЅР°Р№РґРё РµРіРѕ');
   }
 
   function isDirectGameTask(task) {
@@ -508,7 +508,7 @@
   function isExpertRatingTask(task) {
     if (AUTO_EXPERT_RATING_EVENTS.has(Number(task?.event))) return true;
     const text = smb.normalizeText(`${task?.name || ''} ${task?.description || ''}`);
-    return text.includes('оцените тайтл') || text.includes('оцените произведение') || text.includes('поставь оценку') || text.includes('оценка эксперта');
+    return text.includes('РѕС†РµРЅРёС‚Рµ С‚Р°Р№С‚Р»') || text.includes('РѕС†РµРЅРёС‚Рµ РїСЂРѕРёР·РІРµРґРµРЅРёРµ') || text.includes('РїРѕСЃС‚Р°РІСЊ РѕС†РµРЅРєСѓ') || text.includes('РѕС†РµРЅРєР° СЌРєСЃРїРµСЂС‚Р°');
   }
 
   function isCommentTask(task) {
@@ -542,7 +542,7 @@
   function isGuildJoinTask(task) {
     if (AUTO_GUILD_REQUEST_EVENTS.has(Number(task?.event))) return true;
     const text = smb.normalizeText(`${task?.name || ''} ${task?.description || ''}`);
-    return text.includes('я мы одно целое') || (text.includes('гильд') && text.includes('заяв'));
+    return text.includes('СЏ РјС‹ РѕРґРЅРѕ С†РµР»РѕРµ') || (text.includes('РіРёР»СЊРґ') && text.includes('Р·Р°СЏРІ'));
   }
 
   function isExchangeTask(task) {
@@ -556,13 +556,13 @@
   function isShopPurchaseTask(task) {
     if (AUTO_SHOP_PURCHASE_EVENTS.has(Number(task?.event))) return true;
     const text = smb.normalizeText(`${task?.name || ''} ${task?.description || ''}`);
-    return text.includes('вперёд за покупками') || (text.includes('предмет кастомизации') && text.includes('купи'));
+    return text.includes('РІРїРµСЂС‘Рґ Р·Р° РїРѕРєСѓРїРєР°РјРё') || (text.includes('РїСЂРµРґРјРµС‚ РєР°СЃС‚РѕРјРёР·Р°С†РёРё') && text.includes('РєСѓРїРё'));
   }
 
   function isTicketSpendTask(task) {
     if (AUTO_TICKET_SPEND_EVENTS.has(Number(task?.event))) return true;
     const text = smb.normalizeText(`${task?.name || ''} ${task?.description || ''}`);
-    return text.includes('потрать тикеты') || (text.includes('тикет') && text.includes('глав'));
+    return text.includes('РїРѕС‚СЂР°С‚СЊ С‚РёРєРµС‚С‹') || (text.includes('С‚РёРєРµС‚') && text.includes('РіР»Р°РІ'));
   }
 
   function isDeckCardTask(task) {
@@ -573,10 +573,10 @@
     if (AUTO_CARD_UPGRADE_EVENTS.has(Number(task?.event))) return true;
     const text = smb.normalizeText(`${task?.name || ''} ${task?.description || ''}`);
     return (
-      text.includes('похоже на триплет') ||
-      (text.includes('карточ') && text.includes('апгрейд')) ||
-      (text.includes('карточ') && text.includes('улучш')) ||
-      (text.includes('карт') && text.includes('апгрейд'))
+      text.includes('РїРѕС…РѕР¶Рµ РЅР° С‚СЂРёРїР»РµС‚') ||
+      (text.includes('РєР°СЂС‚РѕС‡') && text.includes('Р°РїРіСЂРµР№Рґ')) ||
+      (text.includes('РєР°СЂС‚РѕС‡') && text.includes('СѓР»СѓС‡С€')) ||
+      (text.includes('РєР°СЂС‚') && text.includes('Р°РїРіСЂРµР№Рґ'))
     );
   }
 
@@ -614,20 +614,20 @@
       return TEMPORARY_BROKEN_EVENT_REASONS.get(eventId);
     }
 
-    if (text.includes('покуп')) {
-      return 'Требует покупки или другого платного действия на сайте.';
+    if (text.includes('РїРѕРєСѓРї')) {
+      return 'РўСЂРµР±СѓРµС‚ РїРѕРєСѓРїРєРё РёР»Рё РґСЂСѓРіРѕРіРѕ РїР»Р°С‚РЅРѕРіРѕ РґРµР№СЃС‚РІРёСЏ РЅР° СЃР°Р№С‚Рµ.';
     }
-    if (text.includes('улучш') || text.includes('инвентар')) {
-      return 'Требует ручного выбора предмета или улучшения в интерфейсе.';
+    if (text.includes('СѓР»СѓС‡С€') || text.includes('РёРЅРІРµРЅС‚Р°СЂ')) {
+      return 'РўСЂРµР±СѓРµС‚ СЂСѓС‡РЅРѕРіРѕ РІС‹Р±РѕСЂР° РїСЂРµРґРјРµС‚Р° РёР»Рё СѓР»СѓС‡С€РµРЅРёСЏ РІ РёРЅС‚РµСЂС„РµР№СЃРµ.';
     }
-    if (text.includes('знаком') || text.includes('друз')) {
-      return 'Связана с социальным действием, которое пока безопаснее оставить ручным.';
+    if (text.includes('Р·РЅР°РєРѕРј') || text.includes('РґСЂСѓР·')) {
+      return 'РЎРІСЏР·Р°РЅР° СЃ СЃРѕС†РёР°Р»СЊРЅС‹Рј РґРµР№СЃС‚РІРёРµРј, РєРѕС‚РѕСЂРѕРµ РїРѕРєР° Р±РµР·РѕРїР°СЃРЅРµРµ РѕСЃС‚Р°РІРёС‚СЊ СЂСѓС‡РЅС‹Рј.';
     }
-    if (text.includes('золот') || text.includes('донат') || text.includes('пополн')) {
-      return 'Зависит от золота или пополнения баланса, поэтому не автоматизируется.';
+    if (text.includes('Р·РѕР»РѕС‚') || text.includes('РґРѕРЅР°С‚') || text.includes('РїРѕРїРѕР»РЅ')) {
+      return 'Р—Р°РІРёСЃРёС‚ РѕС‚ Р·РѕР»РѕС‚Р° РёР»Рё РїРѕРїРѕР»РЅРµРЅРёСЏ Р±Р°Р»Р°РЅСЃР°, РїРѕСЌС‚РѕРјСѓ РЅРµ Р°РІС‚РѕРјР°С‚РёР·РёСЂСѓРµС‚СЃСЏ.';
     }
 
-    return 'Оставлена в ручном режиме, чтобы не ломать сценарий и не трогать чувствительные действия.';
+    return 'РћСЃС‚Р°РІР»РµРЅР° РІ СЂСѓС‡РЅРѕРј СЂРµР¶РёРјРµ, С‡С‚РѕР±С‹ РЅРµ Р»РѕРјР°С‚СЊ СЃС†РµРЅР°СЂРёР№ Рё РЅРµ С‚СЂРѕРіР°С‚СЊ С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РґРµР№СЃС‚РІРёСЏ.';
   }
 
   function getSearchField(task) {
@@ -636,7 +636,7 @@
 
   function extractTagNames(task) {
     const description = String(task?.description || '');
-    const match = description.match(/(?:жанр|жанра|жанры|категория|категории)\s*:\s*(.+?)(?:[.!]|$)/i);
+    const match = description.match(/(?:Р¶Р°РЅСЂ|Р¶Р°РЅСЂР°|Р¶Р°РЅСЂС‹|РєР°С‚РµРіРѕСЂРёСЏ|РєР°С‚РµРіРѕСЂРёРё)\s*:\s*(.+?)(?:[.!]|$)/i);
     if (!match?.[1]) return [];
     return match[1]
       .split(',')
@@ -820,7 +820,7 @@
     return boundary > 0 ? boundary : 0;
   }
 
-  function getReadableTitleName(entity, fallback = 'тайтл') {
+  function getReadableTitleName(entity, fallback = 'С‚Р°Р№С‚Р»') {
     return entity?.rus_name
       || entity?.main_name
       || entity?.secondary_name
@@ -829,7 +829,7 @@
       || fallback;
   }
 
-  function getReadableChapterLabel(entity, fallback = 'глава') {
+  function getReadableChapterLabel(entity, fallback = 'РіР»Р°РІР°') {
     const titleName = getReadableTitleName(entity, fallback);
     const chapterId = entity?.chapterId || entity?.id || null;
     return chapterId ? `${titleName} #${chapterId}` : titleName;
@@ -837,7 +837,7 @@
 
   function getTitleLicenseBlockReason(title) {
     const statusText = smb.normalizeText(`${title?.status?.name || ''} ${title?.translate_status?.name || ''}`);
-    if (title?.is_licensed || statusText.includes('лиценз')) return 'Лицензированный тайтл';
+    if (title?.is_licensed || statusText.includes('Р»РёС†РµРЅР·')) return 'Р›РёС†РµРЅР·РёСЂРѕРІР°РЅРЅС‹Р№ С‚Р°Р№С‚Р»';
     return '';
   }
 
@@ -1737,7 +1737,7 @@
     const ids = (Array.isArray(chapterIds) ? chapterIds : [chapterIds])
       .map(Number)
       .filter(id => id > 0);
-    if (!ids.length) throw new Error('Не переданы главы для лайка.');
+    if (!ids.length) throw new Error('РќРµ РїРµСЂРµРґР°РЅС‹ РіР»Р°РІС‹ РґР»СЏ Р»Р°Р№РєР°.');
     return smb.apiPost('/api/v2/activity/vote/', {
       type: 'chapters',
       data: {
@@ -1764,7 +1764,7 @@
       }
     }
 
-    throw lastError || new Error('Не удалось отправить оценку тайтла.');
+    throw lastError || new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РѕС†РµРЅРєСѓ С‚Р°Р№С‚Р»Р°.');
   }
 
   async function submitComment(text) {
@@ -1785,7 +1785,7 @@
 
   function isCommentingUnavailableError(error) {
     const message = String(error?.message || error || '').toLowerCase();
-    return message.includes('вы не можете оставлять комментарии');
+    return message.includes('РІС‹ РЅРµ РјРѕР¶РµС‚Рµ РѕСЃС‚Р°РІР»СЏС‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёРё');
   }
 
   async function fetchTitleComments(titleId, page = 1) {
@@ -1816,7 +1816,7 @@
 
   async function submitProfileVisitDirect(userId) {
     const profileId = Number(userId || 0);
-    if (!profileId) throw new Error('Не передан пользователь для посещения профиля.');
+    if (!profileId) throw new Error('РќРµ РїРµСЂРµРґР°РЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РґР»СЏ РїРѕСЃРµС‰РµРЅРёСЏ РїСЂРѕС„РёР»СЏ.');
 
     const profileUrl = `/user/${profileId}/about`;
     const [profile] = await Promise.all([
@@ -1836,7 +1836,7 @@
   async function submitOwnProfileVisitDirect() {
     const currentUser = await fetchCurrentUser();
     const userId = Number(currentUser?.content?.id || currentUser?.id || 0);
-    if (!userId) throw new Error('Не удалось определить текущего пользователя.');
+    if (!userId) throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ С‚РµРєСѓС‰РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.');
     return submitProfileVisitDirect(userId);
   }
 
@@ -1927,7 +1927,7 @@
           return;
         }
         if (!response?.ok) {
-          reject(new Error(response?.error || 'Фоновый сценарий не выполнился.'));
+          reject(new Error(response?.error || 'Р¤РѕРЅРѕРІС‹Р№ СЃС†РµРЅР°СЂРёР№ РЅРµ РІС‹РїРѕР»РЅРёР»СЃСЏ.'));
           return;
         }
         resolve(response);
@@ -1953,7 +1953,7 @@
     }
 
     if (!response?.ok) {
-      const detail = extractApiErrorMessage(response?.data) || response?.text || 'API-запрос завершился ошибкой.';
+      const detail = extractApiErrorMessage(response?.data) || response?.text || 'API-Р·Р°РїСЂРѕСЃ Р·Р°РІРµСЂС€РёР»СЃСЏ РѕС€РёР±РєРѕР№.';
       throw new Error(detail);
     }
 
@@ -1979,7 +1979,7 @@
     }
 
     if (!response?.ok) {
-      const detail = extractApiErrorMessage(response?.data) || response?.text || 'Profile-context API завершился ошибкой.';
+      const detail = extractApiErrorMessage(response?.data) || response?.text || 'Profile-context API Р·Р°РІРµСЂС€РёР»СЃСЏ РѕС€РёР±РєРѕР№.';
       throw new Error(detail);
     }
 
@@ -2008,28 +2008,28 @@
       filterBy: 'avatar',
       currentUserKey: 'avatar',
       imageItemType: 'avatar',
-      label: 'аватары'
+      label: 'Р°РІР°С‚Р°СЂС‹'
     },
     wallpapers: {
       shopType: 'wallpapers',
       filterBy: 'wallpaper',
       currentUserKey: 'wallpaper',
       imageItemType: 'wallpaper',
-      label: 'обои'
+      label: 'РѕР±РѕРё'
     },
     frames: {
       shopType: 'frames',
       filterBy: 'frame',
       currentUserKey: 'frame',
       imageItemType: 'frame',
-      label: 'рамки'
+      label: 'СЂР°РјРєРё'
     },
     theme: {
       shopType: 'theme',
       filterBy: 'theme',
       currentUserKey: 'theme',
       imageItemType: 'theme',
-      label: 'темы'
+      label: 'С‚РµРјС‹'
     }
   };
 
@@ -2266,7 +2266,7 @@
 
   async function equipCustomizationItem(plan, categoryKey, itemId) {
     if (!Number(plan?.userId || 0) || !Number(itemId || 0)) {
-      throw new Error('Не удалось определить пользователя или предмет кастомизации для API.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РёР»Рё РїСЂРµРґРјРµС‚ РєР°СЃС‚РѕРјРёР·Р°С†РёРё РґР»СЏ API.');
     }
 
     return runRemangaApiRequest(`/api/inventory/${Number(plan.userId)}/`, {
@@ -2275,6 +2275,44 @@
         item: Number(itemId)
       }
     });
+  }
+
+  async function unequipCustomizationItem(plan) {
+    if (!Number(plan?.userId || 0)) {
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РґР»СЏ СЃРЅСЏС‚РёСЏ РїСЂРµРґРјРµС‚Р° РєР°СЃС‚РѕРјРёР·Р°С†РёРё.');
+    }
+
+    return runRemangaApiRequest(`/api/inventory/${Number(plan.userId)}/`, {
+      method: 'POST',
+      body: {
+        item: null
+      },
+      acceptStatuses: [200, 201, 204]
+    });
+  }
+
+  async function restoreCustomizationViaApi(plan, restorePlan) {
+    if (!restorePlan) return { restored: true, skipped: true };
+
+    if (Number(restorePlan.itemId || 0) > 0) {
+      await equipCustomizationItem(plan, restorePlan.categoryKey, Number(restorePlan.itemId || 0));
+      return {
+        restored: true,
+        categoryKey: restorePlan.categoryKey,
+        itemId: Number(restorePlan.itemId || 0)
+      };
+    }
+
+    if (restorePlan.unequip) {
+      await unequipCustomizationItem(plan);
+      return {
+        restored: true,
+        categoryKey: restorePlan.categoryKey,
+        unequipped: true
+      };
+    }
+
+    return { restored: true, skipped: true };
   }
 
   async function swapCustomizationViaApi(plan, categoryKey) {
@@ -2293,7 +2331,7 @@
     const currentUserAfter = await fetchCurrentUser();
     const changedAsset = normalizeInventoryAssetUrl(readInventoryAssetFromUser(currentUserAfter, categoryKey));
     if (changedAsset !== alternative.normalizedAsset) {
-      throw new Error(`Сайт не применил другой предмет через API (${categoryMeta.label}).`);
+      throw new Error(`РЎР°Р№С‚ РЅРµ РїСЂРёРјРµРЅРёР» РґСЂСѓРіРѕР№ РїСЂРµРґРјРµС‚ С‡РµСЂРµР· API (${categoryMeta.label}).`);
     }
 
     return {
@@ -2311,7 +2349,7 @@
   async function buildInventoryPlan() {
     const currentUser = await fetchCurrentUser();
     const userId = Number(currentUser?.id || 0);
-    if (!userId) throw new Error('Не удалось определить текущего пользователя.');
+    if (!userId) throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ С‚РµРєСѓС‰РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.');
 
     return {
       userId,
@@ -2333,7 +2371,7 @@
   }
 
   async function collectProfileCandidateIds(currentId, visitedProfiles, limit) {
-    const fallbackIds = [];
+    const fallbackIds = [24, 627468, 474677, 80189, 78208, 47343, 1, 2, 3];
     const candidates = [];
     const seen = new Set();
 
@@ -2566,7 +2604,7 @@
     }
 
     if (!tagNames.length) {
-      throw new Error('Не удалось разобрать теги из описания задачи.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°Р·РѕР±СЂР°С‚СЊ С‚РµРіРё РёР· РѕРїРёСЃР°РЅРёСЏ Р·Р°РґР°С‡Рё.');
     }
 
     const candidateMap = createCandidateMap();
@@ -2577,7 +2615,7 @@
 
     resolvedTags = await collectFilterCandidates(field, tagNames, candidateMap);
     if (!resolvedTags.length) {
-      throw new Error('Не удалось найти ID нужных жанров или категорий для фильтра каталога.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё ID РЅСѓР¶РЅС‹С… Р¶Р°РЅСЂРѕРІ РёР»Рё РєР°С‚РµРіРѕСЂРёР№ РґР»СЏ С„РёР»СЊС‚СЂР° РєР°С‚Р°Р»РѕРіР°.');
     }
 
     const matchTags = resolvedTags.length ? resolvedTags : tagNames;
@@ -2712,7 +2750,7 @@
     return {
       dryRun: true,
       taskId: Number(task?.id || 0) || null,
-      taskName: String(task?.name || 'Задача'),
+      taskName: String(task?.name || 'Р—Р°РґР°С‡Р°'),
       progress,
       goal,
       remaining: Math.max(0, goal - progress),
@@ -2751,7 +2789,7 @@
             .map(title => ({
               title: getReadableTitleName(title),
               dir: title.dir,
-              reason: 'нет подходящей бесплатной непрочитанной главы или ниже приоритет'
+              reason: 'РЅРµС‚ РїРѕРґС…РѕРґСЏС‰РµР№ Р±РµСЃРїР»Р°С‚РЅРѕР№ РЅРµРїСЂРѕС‡РёС‚Р°РЅРЅРѕР№ РіР»Р°РІС‹ РёР»Рё РЅРёР¶Рµ РїСЂРёРѕСЂРёС‚РµС‚'
             }))
         ],
         requests: [
@@ -2776,7 +2814,7 @@
           `POST /api/activity/views/ x${plan.selectedChapters.length}`,
           `POST /api/v2/activity/view-page/ page=1,-1 x${plan.selectedChapters.length}`
         ],
-        warnings: ['Отправка будет идти быстрыми последовательными сериями, не одним параллельным пакетом.'],
+        warnings: ['РћС‚РїСЂР°РІРєР° Р±СѓРґРµС‚ РёРґС‚Рё Р±С‹СЃС‚СЂС‹РјРё РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅС‹РјРё СЃРµСЂРёСЏРјРё, РЅРµ РѕРґРЅРёРј РїР°СЂР°Р»Р»РµР»СЊРЅС‹Рј РїР°РєРµС‚РѕРј.'],
         expectedProgress: `${Number(task?.progress || 0)}/${Number(task?.goal || 0)} -> ${Math.min(Number(task?.goal || 0), Number(task?.progress || 0) + plan.selectedChapters.length)}/${Number(task?.goal || 0)}`
       });
     }
@@ -2792,21 +2830,21 @@
           'GET /api/v2/titles/chapters/?user_data=1',
           `POST /api/v2/activity/vote/ x${plan.selectedChapters.length}`
         ],
-        warnings: ['Каждый лайк будет отдельным POST через новый endpoint ReManga; если battlepass не растёт две серии подряд, runner остановится.'],
+        warnings: ['РљР°Р¶РґС‹Р№ Р»Р°Р№Рє Р±СѓРґРµС‚ РѕС‚РґРµР»СЊРЅС‹Рј POST С‡РµСЂРµР· РЅРѕРІС‹Р№ endpoint ReManga; РµСЃР»Рё battlepass РЅРµ СЂР°СЃС‚С‘С‚ РґРІРµ СЃРµСЂРёРё РїРѕРґСЂСЏРґ, runner РѕСЃС‚Р°РЅРѕРІРёС‚СЃСЏ.'],
         expectedProgress: `${Number(task?.progress || 0)}/${Number(task?.goal || 0)} -> ${Math.min(Number(task?.goal || 0), Number(task?.progress || 0) + plan.selectedChapters.length)}/${Number(task?.goal || 0)}`
       });
     }
 
     return makeDryRunResult(task, {
       kind: getTaskVisualKind(task),
-      warnings: ['Для этой задачи пока доступен только общий предпросмотр.'],
-      requests: ['Задача будет выполнена через текущий API-раннер без открытия новых вкладок.']
+      warnings: ['Р”Р»СЏ СЌС‚РѕР№ Р·Р°РґР°С‡Рё РїРѕРєР° РґРѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ РѕР±С‰РёР№ РїСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ.'],
+      requests: ['Р—Р°РґР°С‡Р° Р±СѓРґРµС‚ РІС‹РїРѕР»РЅРµРЅР° С‡РµСЂРµР· С‚РµРєСѓС‰РёР№ API-СЂР°РЅРЅРµСЂ Р±РµР· РѕС‚РєСЂС‹С‚РёСЏ РЅРѕРІС‹С… РІРєР»Р°РґРѕРє.']
     });
   }
 
   async function runAutonomousMemoryTask(task, progressCb) {
     if (!isAutonomousMemoryTask(task)) {
-      throw new Error('Эта задача не относится к автономной memory-игре.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє Р°РІС‚РѕРЅРѕРјРЅРѕР№ memory-РёРіСЂРµ.');
     }
 
     const before = await loadState();
@@ -2822,7 +2860,7 @@
       };
     }
 
-    progressCb?.('Отправляю завершение memory через API...');
+    progressCb?.('РћС‚РїСЂР°РІР»СЏСЋ Р·Р°РІРµСЂС€РµРЅРёРµ memory С‡РµСЂРµР· API...');
     await smb.manageMinigame(smb.GAME_IDS.memory);
 
     let finalTask = await waitForTaskUpdate(
@@ -2835,12 +2873,12 @@
       }
     );
     if (Number(finalTask.progress || 0) <= currentProgress) {
-      throw new Error('Сайт не засчитал memory после прямого API-вызова.');
+      throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» memory РїРѕСЃР»Рµ РїСЂСЏРјРѕРіРѕ API-РІС‹Р·РѕРІР°.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -2858,7 +2896,7 @@
     assertTaskAutomatable(task);
 
     if (!isInventoryTask(task)) {
-      throw new Error('Эта задача не относится к инвентарю или кастомизации.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РёРЅРІРµРЅС‚Р°СЂСЋ РёР»Рё РєР°СЃС‚РѕРјРёР·Р°С†РёРё.');
     }
 
     const before = await loadState();
@@ -2875,85 +2913,34 @@
     }
 
     const plan = await buildInventoryPlan();
-    progressCb?.('Проверяю доступные предметы и временно меняю оформление...');
+    progressCb?.('Проверяю доступные предметы и временно меняю оформление через API...');
     let changedCategory = null;
-    let backgroundError = null;
     let restorePlan = null;
 
-    try {
-      const response = await sendRuntimeMessage({
-        type: 'smbp_run_inventory_task',
-        mode: 'swap_customization',
-        url: plan.inventoryUrl,
-        categoryUrls: plan.categoryUrls,
-        equippedImages: plan.equippedImages,
-        categoryOrder: ['avatars', 'frames', 'wallpapers', 'theme'],
-        restoreOriginal: false
-      });
-
-      if (response?.changed) {
-        changedCategory = {
-          categoryKey: response.categoryKey,
-          categoryLabel: response.categoryLabel,
-          title: response.alternativeName || `${response.categoryLabel || response.categoryKey} #${response.alternativeItemId || '?'}`,
-          itemId: Number(response.alternativeItemId || 0) || null,
-          imageUrl: response.alternativeImage || ''
-        };
-        if (Number(response?.equippedItemId || 0) > 0) {
+    for (const categoryKey of ['avatars', 'frames', 'wallpapers', 'theme']) {
+      changedCategory = await swapCustomizationViaApi(plan, categoryKey);
+      if (changedCategory) {
+        if (Number(changedCategory.equippedItemId || 0) > 0) {
           restorePlan = {
-            categoryKey: response.categoryKey,
-            itemId: Number(response.equippedItemId || 0),
-            imageUrl: response.equippedImage || '',
-            url: plan.categoryUrls?.[response.categoryKey] || plan.inventoryUrl
+            categoryKey: changedCategory.categoryKey,
+            itemId: Number(changedCategory.equippedItemId || 0),
+            imageUrl: changedCategory.equippedImage || ''
           };
         } else {
           restorePlan = {
-            categoryKey: response.categoryKey,
+            categoryKey: changedCategory.categoryKey,
             itemId: null,
-            imageUrl: response.alternativeImage || '',
-            url: plan.categoryUrls?.[response.categoryKey] || plan.inventoryUrl,
+            imageUrl: changedCategory.imageUrl || '',
             unequip: true
           };
         }
-      }
-    } catch (error) {
-      backgroundError = error;
-      progressCb?.(`Фоновый сценарий не сработал, пробую API-фолбэк: ${error?.message || error}`);
-    }
-
-    if (!changedCategory) {
-      progressCb?.('Пробую смену оформления через API инвентаря...');
-      for (const categoryKey of ['avatars', 'frames', 'wallpapers', 'theme']) {
-        changedCategory = await swapCustomizationViaApi(plan, categoryKey);
-        if (changedCategory) {
-          if (!restorePlan && Number(changedCategory.equippedItemId || 0) > 0) {
-            restorePlan = {
-              categoryKey: changedCategory.categoryKey,
-              itemId: Number(changedCategory.equippedItemId || 0),
-              imageUrl: changedCategory.equippedImage || '',
-              url: plan.categoryUrls?.[changedCategory.categoryKey] || plan.inventoryUrl
-            };
-          } else if (!restorePlan) {
-            restorePlan = {
-              categoryKey: changedCategory.categoryKey,
-              itemId: null,
-              imageUrl: changedCategory.imageUrl || '',
-              url: plan.categoryUrls?.[changedCategory.categoryKey] || plan.inventoryUrl,
-              unequip: true
-            };
-          }
-          break;
-        }
+        break;
       }
     }
 
     if (!changedCategory) {
-      if (backgroundError) {
-        throw new Error(`Не удалось сменить кастомизацию через фон или API: ${backgroundError.message || backgroundError}`);
-      }
-      throw new Error('Не удалось найти доступный предмет кастомизации для смены.');
+      throw new Error('Не удалось найти доступный предмет кастомизации для смены через API.');
     }
-
     let finalTask = beforeTask;
     let claimed = false;
 
@@ -2969,12 +2956,12 @@
       );
 
       if (Number(finalTask.progress || 0) <= currentProgress) {
-        throw new Error('Сайт не засчитал смену оформления.');
+        throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» СЃРјРµРЅСѓ РѕС„РѕСЂРјР»РµРЅРёСЏ.');
       }
 
       let claimed = false;
       if (smb.isTaskReady(finalTask)) {
-        progressCb?.(`Забираю награду: ${finalTask.name}`);
+        progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
         await smb.claimTask(finalTask.id);
         claimed = true;
         const claimedState = await loadState();
@@ -2991,19 +2978,10 @@
       };
     } finally {
       if (restorePlan?.itemId || restorePlan?.unequip) {
-        progressCb?.(`Возвращаю исходный предмет: ${restorePlan.categoryKey}...`);
-        const restoreResult = await sendRuntimeMessage({
-          type: 'smbp_run_inventory_task',
-          mode: 'restore_customization',
-          url: restorePlan.url,
-          categoryUrls: plan.categoryUrls,
-          restoreCategoryKey: restorePlan.categoryKey,
-          restoreItemId: restorePlan.itemId,
-          restoreImage: restorePlan.imageUrl,
-          restoreUnequip: Boolean(restorePlan.unequip)
-        });
+        progressCb?.(`Возвращаю исходный предмет через API: ${restorePlan.categoryKey}...`);
+        const restoreResult = await restoreCustomizationViaApi(plan, restorePlan);
         if (!restoreResult?.restored) {
-          throw new Error('Не удалось вернуть исходный предмет кастомизации после проверки задания.');
+          throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РІРµСЂРЅСѓС‚СЊ РёСЃС…РѕРґРЅС‹Р№ РїСЂРµРґРјРµС‚ РєР°СЃС‚РѕРјРёР·Р°С†РёРё РїРѕСЃР»Рµ РїСЂРѕРІРµСЂРєРё Р·Р°РґР°РЅРёСЏ.');
         }
       }
     }
@@ -3013,7 +2991,7 @@
     assertTaskAutomatable(task);
 
     if (!isPersonalProfileTask(task)) {
-      throw new Error('Эта задача не относится к посещению своего профиля.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РїРѕСЃРµС‰РµРЅРёСЋ СЃРІРѕРµРіРѕ РїСЂРѕС„РёР»СЏ.');
     }
 
     const before = await loadState();
@@ -3030,7 +3008,7 @@
       };
     }
 
-    progressCb?.('Открываю свой профиль фоновым запросом...');
+    progressCb?.('РћС‚РєСЂС‹РІР°СЋ СЃРІРѕР№ РїСЂРѕС„РёР»СЊ С„РѕРЅРѕРІС‹Рј Р·Р°РїСЂРѕСЃРѕРј...');
     const profile = await submitOwnProfileVisitDirect();
 
     let finalTask = await waitForTaskUpdate(
@@ -3044,12 +3022,12 @@
     );
 
     if (Number(finalTask.progress || 0) <= currentProgress) {
-      throw new Error('Сайт не засчитал посещение своего профиля.');
+      throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» РїРѕСЃРµС‰РµРЅРёРµ СЃРІРѕРµРіРѕ РїСЂРѕС„РёР»СЏ.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -3125,8 +3103,8 @@
   async function getAutomationCopySettings() {
     const settings = await smb.loadSettings();
     return {
-      commentText: normalizeAutomationText(settings?.commentTaskText, 'Спасибо за главу!'),
-      replyText: normalizeAutomationText(settings?.commentReplyTaskText, 'Спасибо за ответ!')
+      commentText: normalizeAutomationText(settings?.commentTaskText, 'РЎРїР°СЃРёР±Рѕ Р·Р° РіР»Р°РІСѓ!'),
+      replyText: normalizeAutomationText(settings?.commentReplyTaskText, 'РЎРїР°СЃРёР±Рѕ Р·Р° РѕС‚РІРµС‚!')
     };
   }
 
@@ -3196,7 +3174,7 @@
             cost: getShopItemCost(item)
           });
         }
-        progressCb?.(`Магазин ${type}: найдено подходящих ${candidates.length}`);
+        progressCb?.(`РњР°РіР°Р·РёРЅ ${type}: РЅР°Р№РґРµРЅРѕ РїРѕРґС…РѕРґСЏС‰РёС… ${candidates.length}`);
         if (safeItems.length || !payload?.next || !results.length) break;
       }
     }
@@ -3210,7 +3188,7 @@
       .filter(candidate => candidate.cost <= availableCoins);
 
     if (!candidates.length) {
-      throw new Error(`Не найден доступный предмет кастомизации за монеты. Баланс молний: ${availableCoins}, минимум для покупки: ${SHOP_MIN_CUSTOMIZATION_COST}.`);
+      throw new Error(`РќРµ РЅР°Р№РґРµРЅ РґРѕСЃС‚СѓРїРЅС‹Р№ РїСЂРµРґРјРµС‚ РєР°СЃС‚РѕРјРёР·Р°С†РёРё Р·Р° РјРѕРЅРµС‚С‹. Р‘Р°Р»Р°РЅСЃ РјРѕР»РЅРёР№: ${availableCoins}, РјРёРЅРёРјСѓРј РґР»СЏ РїРѕРєСѓРїРєРё: ${SHOP_MIN_CUSTOMIZATION_COST}.`);
     }
 
     const minCost = Math.min(...candidates.map(candidate => candidate.cost));
@@ -3235,7 +3213,7 @@
     assertTaskAutomatable(task);
 
     if (!isShopPurchaseTask(task)) {
-      throw new Error('Эта задача не относится к покупке кастомизации в магазине.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РїРѕРєСѓРїРєРµ РєР°СЃС‚РѕРјРёР·Р°С†РёРё РІ РјР°РіР°Р·РёРЅРµ.');
     }
 
     const before = await loadState();
@@ -3251,9 +3229,9 @@
       };
     }
 
-    progressCb?.('Подбираю самый дешевый предмет кастомизации в магазине...');
+    progressCb?.('РџРѕРґР±РёСЂР°СЋ СЃР°РјС‹Р№ РґРµС€РµРІС‹Р№ РїСЂРµРґРјРµС‚ РєР°СЃС‚РѕРјРёР·Р°С†РёРё РІ РјР°РіР°Р·РёРЅРµ...');
     const plan = await buildShopPurchasePlan(progressCb);
-    progressCb?.(`Покупаю: ${plan.selected.name} (${plan.selected.type}) за ${plan.selected.cost} молний.`);
+    progressCb?.(`РџРѕРєСѓРїР°СЋ: ${plan.selected.name} (${plan.selected.type}) Р·Р° ${plan.selected.cost} РјРѕР»РЅРёР№.`);
     await buyShopCustomizationItem(plan.selected);
 
     let finalTask = await waitForTaskUpdate(
@@ -3267,12 +3245,12 @@
     );
 
     if (Number(finalTask.progress || 0) <= currentProgress) {
-      throw new Error('Покупка прошла, но сайт не засчитал задачу.');
+      throw new Error('РџРѕРєСѓРїРєР° РїСЂРѕС€Р»Р°, РЅРѕ СЃР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» Р·Р°РґР°С‡Сѓ.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -3317,7 +3295,7 @@
           url: `https://remanga.org/manga/${encodeURIComponent(dir)}/${Number(chapter.id)}`
         };
       }
-      progressCb?.(`Проверяю платные главы: ${titleName}, страница ${page}`);
+      progressCb?.(`РџСЂРѕРІРµСЂСЏСЋ РїР»Р°С‚РЅС‹Рµ РіР»Р°РІС‹: ${titleName}, СЃС‚СЂР°РЅРёС†Р° ${page}`);
       if (!payload?.next || !chapters.length) break;
     }
 
@@ -3328,7 +3306,7 @@
     const currentUser = await getCurrentUserProfile();
     const ticketBalance = getTicketBalanceFromUser(currentUser);
     if (ticketBalance <= 0) {
-      throw new Error('На аккаунте нет тикетов для покупки главы.');
+      throw new Error('РќР° Р°РєРєР°СѓРЅС‚Рµ РЅРµС‚ С‚РёРєРµС‚РѕРІ РґР»СЏ РїРѕРєСѓРїРєРё РіР»Р°РІС‹.');
     }
 
     const dirs = [];
@@ -3365,7 +3343,7 @@
       }
     }
 
-    throw new Error('Не удалось найти платную некупленную главу, которую можно открыть за тикет.');
+    throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РїР»Р°С‚РЅСѓСЋ РЅРµРєСѓРїР»РµРЅРЅСѓСЋ РіР»Р°РІСѓ, РєРѕС‚РѕСЂСѓСЋ РјРѕР¶РЅРѕ РѕС‚РєСЂС‹С‚СЊ Р·Р° С‚РёРєРµС‚.');
   }
 
   async function runTicketSpendInIframe(url, progressCb) {
@@ -3403,10 +3381,10 @@
       .filter(node => !node.disabled && normalize(node.innerText || node.textContent));
     const findTicketButton = doc => {
       const buttons = allButtons(doc);
-      return buttons.find(button => normalize(button.innerText || button.textContent).includes('открыть за 1')) ||
+      return buttons.find(button => normalize(button.innerText || button.textContent).includes('РѕС‚РєСЂС‹С‚СЊ Р·Р° 1')) ||
         buttons.find(button => {
           const text = normalize(button.innerText || button.textContent);
-          return text.includes('тикет') && (text.includes('открыть') || text.includes('купить') || text.includes('получить'));
+          return text.includes('С‚РёРєРµС‚') && (text.includes('РѕС‚РєСЂС‹С‚СЊ') || text.includes('РєСѓРїРёС‚СЊ') || text.includes('РїРѕР»СѓС‡РёС‚СЊ'));
         });
     };
     const clickNode = async node => {
@@ -3427,27 +3405,27 @@
 
       if (!ticketButton) {
         const doc = getFrameDocument();
-        throw new Error(`Не найдена кнопка открытия за тикет. Текст страницы: ${(doc?.body?.innerText || '').slice(0, 300)}`);
+        throw new Error(`РќРµ РЅР°Р№РґРµРЅР° РєРЅРѕРїРєР° РѕС‚РєСЂС‹С‚РёСЏ Р·Р° С‚РёРєРµС‚. РўРµРєСЃС‚ СЃС‚СЂР°РЅРёС†С‹: ${(doc?.body?.innerText || '').slice(0, 300)}`);
       }
 
-      progressCb?.('Нажимаю открытие главы за 1 тикет...');
+      progressCb?.('РќР°Р¶РёРјР°СЋ РѕС‚РєСЂС‹С‚РёРµ РіР»Р°РІС‹ Р·Р° 1 С‚РёРєРµС‚...');
       await clickNode(ticketButton);
       await smb.sleep(900);
 
       const docAfterClick = getFrameDocument();
       const confirmButton = docAfterClick ? allButtons(docAfterClick).find(button => {
         const text = normalize(button.innerText || button.textContent);
-        if (!text || text.includes('отмена') || text.includes('закрыть')) return false;
+        if (!text || text.includes('РѕС‚РјРµРЅР°') || text.includes('Р·Р°РєСЂС‹С‚СЊ')) return false;
         return (
-          text.includes('подтверд') ||
-          text.includes('купить') ||
-          text.includes('открыть за 1') ||
-          (text.includes('открыть') && text.includes('тикет'))
+          text.includes('РїРѕРґС‚РІРµСЂРґ') ||
+          text.includes('РєСѓРїРёС‚СЊ') ||
+          text.includes('РѕС‚РєСЂС‹С‚СЊ Р·Р° 1') ||
+          (text.includes('РѕС‚РєСЂС‹С‚СЊ') && text.includes('С‚РёРєРµС‚'))
         );
       }) : null;
 
       if (confirmButton && confirmButton !== ticketButton) {
-        progressCb?.('Подтверждаю покупку главы за тикет...');
+        progressCb?.('РџРѕРґС‚РІРµСЂР¶РґР°СЋ РїРѕРєСѓРїРєСѓ РіР»Р°РІС‹ Р·Р° С‚РёРєРµС‚...');
         await clickNode(confirmButton);
       }
 
@@ -3455,7 +3433,7 @@
         const doc = getFrameDocument();
         if (!doc?.body) return null;
         const text = doc.body.innerText || '';
-        const stillLocked = text.includes('Открыть за 1') && text.toLowerCase().includes('тикет');
+        const stillLocked = text.includes('РћС‚РєСЂС‹С‚СЊ Р·Р° 1') && text.toLowerCase().includes('С‚РёРєРµС‚');
         const hasReaderContent = Boolean(
           doc.querySelector('img[src*="/media/titles/"], img[src*="/media/chapters/"], canvas') ||
           Array.from(doc.images || []).some(image => /chapters|titles/i.test(image.src || ''))
@@ -3469,7 +3447,7 @@
 
       if (!unlocked) {
         const doc = getFrameDocument();
-        throw new Error(`Сайт не показал, что глава открыта за тикет. Текст страницы: ${(doc?.body?.innerText || '').slice(0, 300)}`);
+        throw new Error(`РЎР°Р№С‚ РЅРµ РїРѕРєР°Р·Р°Р», С‡С‚Рѕ РіР»Р°РІР° РѕС‚РєСЂС‹С‚Р° Р·Р° С‚РёРєРµС‚. РўРµРєСЃС‚ СЃС‚СЂР°РЅРёС†С‹: ${(doc?.body?.innerText || '').slice(0, 300)}`);
       }
 
       return unlocked;
@@ -3482,7 +3460,7 @@
     assertTaskAutomatable(task);
 
     if (!isTicketSpendTask(task)) {
-      throw new Error('Эта задача не относится к трате тикетов.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє С‚СЂР°С‚Рµ С‚РёРєРµС‚РѕРІ.');
     }
 
     const before = await loadState();
@@ -3498,9 +3476,9 @@
       };
     }
 
-    progressCb?.('Подбираю платную главу для открытия за тикет...');
+    progressCb?.('РџРѕРґР±РёСЂР°СЋ РїР»Р°С‚РЅСѓСЋ РіР»Р°РІСѓ РґР»СЏ РѕС‚РєСЂС‹С‚РёСЏ Р·Р° С‚РёРєРµС‚...');
     const plan = await buildTicketSpendPlan(progressCb);
-    progressCb?.(`Открываю за тикет: ${plan.chapter.titleName}, глава ${plan.chapter.chapterIndex || plan.chapter.chapterId}.`);
+    progressCb?.(`РћС‚РєСЂС‹РІР°СЋ Р·Р° С‚РёРєРµС‚: ${plan.chapter.titleName}, РіР»Р°РІР° ${plan.chapter.chapterIndex || plan.chapter.chapterId}.`);
 
     let response = null;
     let iframeError = null;
@@ -3508,7 +3486,7 @@
       response = await runTicketSpendInIframe(plan.chapter.url, progressCb);
     } catch (error) {
       iframeError = error;
-      progressCb?.(`Iframe-открытие не сработало, пробую background: ${error?.message || error}`);
+      progressCb?.(`Iframe-РѕС‚РєСЂС‹С‚РёРµ РЅРµ СЃСЂР°Р±РѕС‚Р°Р»Рѕ, РїСЂРѕР±СѓСЋ background: ${error?.message || error}`);
     }
 
     if (!response?.purchased) {
@@ -3524,7 +3502,7 @@
     }
 
     if (!response?.purchased) {
-      throw new Error(response?.error || 'Сайт не подтвердил покупку главы за тикет.');
+      throw new Error(response?.error || 'РЎР°Р№С‚ РЅРµ РїРѕРґС‚РІРµСЂРґРёР» РїРѕРєСѓРїРєСѓ РіР»Р°РІС‹ Р·Р° С‚РёРєРµС‚.');
     }
 
     let finalTask = await waitForTaskUpdate(
@@ -3538,12 +3516,12 @@
     );
 
     if (Number(finalTask.progress || 0) <= currentProgress) {
-      throw new Error('Глава открыта за тикет, но сайт не засчитал задачу.');
+      throw new Error('Р“Р»Р°РІР° РѕС‚РєСЂС‹С‚Р° Р·Р° С‚РёРєРµС‚, РЅРѕ СЃР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» Р·Р°РґР°С‡Сѓ.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -3594,11 +3572,11 @@
     const allItems = [];
     for (let page = 1; page <= 8; page += 1) {
       const payload = await smb.apiGet(`/api/v2/inventory/items/cards/${encodeURIComponent(userId)}/?count=100&ordering=rank&page=${page}`).catch(error => {
-        throw new Error(`Не удалось загрузить карты для апгрейда: ${error?.message || error}`);
+        throw new Error(`РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєР°СЂС‚С‹ РґР»СЏ Р°РїРіСЂРµР№РґР°: ${error?.message || error}`);
       });
       const results = Array.isArray(payload?.results) ? payload.results : [];
       allItems.push(...results);
-      progressCb?.(`Загружено карт для апгрейда: ${allItems.length}`);
+      progressCb?.(`Р—Р°РіСЂСѓР¶РµРЅРѕ РєР°СЂС‚ РґР»СЏ Р°РїРіСЂРµР№РґР°: ${allItems.length}`);
       if (!payload?.next || !results.length) break;
     }
     return allItems;
@@ -3621,7 +3599,7 @@
       titleId: Number(title?.id || 0),
       titleName,
       characterName,
-      label: characterName || titleName || `Карта #${card?.id || item?.id || '?'}`,
+      label: characterName || titleName || `РљР°СЂС‚Р° #${card?.id || item?.id || '?'}`,
       subtitle: titleName || String(card?.description || '').trim(),
       imageUrl: toAbsoluteMediaUrl(card?.cover?.high || card?.cover?.mid || ''),
       isFavorite: Boolean(item?.is_favorite),
@@ -3694,8 +3672,8 @@
         key: `common:${key}`,
         type: 'common',
         mergeType: CARD_UPGRADE_TYPES.common.id,
-        label: `${first.titleName || 'Тайтл'} · ${first.rankLabel}`,
-        meta: `${expanded.length} карт одного произведения и ранга`,
+        label: `${first.titleName || 'РўР°Р№С‚Р»'} В· ${first.rankLabel}`,
+        meta: `${expanded.length} РєР°СЂС‚ РѕРґРЅРѕРіРѕ РїСЂРѕРёР·РІРµРґРµРЅРёСЏ Рё СЂР°РЅРіР°`,
         cards: selectedCards,
         cardIds: selectedCards.map(card => card.cardId)
       });
@@ -3713,8 +3691,8 @@
           type: 'rank',
           rank,
           rankLabel,
-          label: `Ранг ${rankLabel}`,
-          meta: `${total} карт. Нужно минимум 3 карты одного ранга из разных произведений.`,
+          label: `Р Р°РЅРі ${rankLabel}`,
+          meta: `${total} РєР°СЂС‚. РќСѓР¶РЅРѕ РјРёРЅРёРјСѓРј 3 РєР°СЂС‚С‹ РѕРґРЅРѕРіРѕ СЂР°РЅРіР° РёР· СЂР°Р·РЅС‹С… РїСЂРѕРёР·РІРµРґРµРЅРёР№.`,
           cards: [],
           cardIds: [],
           disabled: true
@@ -3726,8 +3704,8 @@
         type: 'rank',
         rank,
         rankLabel,
-        label: `Ранг ${rankLabel}`,
-        meta: `${total} карт. Будут выбраны 3 случайные карты разных произведений.`,
+        label: `Р Р°РЅРі ${rankLabel}`,
+        meta: `${total} РєР°СЂС‚. Р‘СѓРґСѓС‚ РІС‹Р±СЂР°РЅС‹ 3 СЃР»СѓС‡Р°Р№РЅС‹Рµ РєР°СЂС‚С‹ СЂР°Р·РЅС‹С… РїСЂРѕРёР·РІРµРґРµРЅРёР№.`,
         cards: distinct,
         cardIds: distinct.map(card => card.cardId),
         disabled: false
@@ -3780,14 +3758,14 @@
     const user = await getCurrentUserProfile();
     const currentUserId = Number(user?.id || 0);
     if (!currentUserId) {
-      throw new Error('Не удалось определить текущий аккаунт для открытия пака.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ С‚РµРєСѓС‰РёР№ Р°РєРєР°СѓРЅС‚ РґР»СЏ РѕС‚РєСЂС‹С‚РёСЏ РїР°РєР°.');
     }
     const deckCandidates = await getDeckIdCandidatesFromValue(deckIdSource);
     let deckId = null;
     let deckMeta = null;
     let deckInstanceId = null;
 
-    progressCb?.(`Ищу неоткрытую колоду среди паков: ${deckCandidates.join(', ')}...`);
+    progressCb?.(`РС‰Сѓ РЅРµРѕС‚РєСЂС‹С‚СѓСЋ РєРѕР»РѕРґСѓ СЃСЂРµРґРё РїР°РєРѕРІ: ${deckCandidates.join(', ')}...`);
 
     for (const candidateId of deckCandidates) {
       const [candidateMeta, deckList] = await Promise.all([
@@ -3808,10 +3786,10 @@
     }
 
     if (!deckInstanceId) {
-      throw new Error(`Не нашёл неоткрытую колоду среди настроенных паков: ${deckCandidates.join(', ')}.`);
+      throw new Error(`РќРµ РЅР°С€С‘Р» РЅРµРѕС‚РєСЂС‹С‚СѓСЋ РєРѕР»РѕРґСѓ СЃСЂРµРґРё РЅР°СЃС‚СЂРѕРµРЅРЅС‹С… РїР°РєРѕРІ: ${deckCandidates.join(', ')}.`);
     }
 
-    progressCb?.(`Открываю колоду #${deckInstanceId} из пака #${deckId}...`);
+    progressCb?.(`РћС‚РєСЂС‹РІР°СЋ РєРѕР»РѕРґСѓ #${deckInstanceId} РёР· РїР°РєР° #${deckId}...`);
     const rawCards = await openInventoryDeck(deckInstanceId);
     const detailCards = await Promise.all(rawCards.map(card => getInventoryCardDetails(card.id)));
     const cards = rawCards.map((card, index) => {
@@ -3832,23 +3810,23 @@
     });
 
     if (typeof smb.showDeckChoiceModal !== 'function') {
-      throw new Error('Модалка выбора карт не инициализирована.');
+      throw new Error('РњРѕРґР°Р»РєР° РІС‹Р±РѕСЂР° РєР°СЂС‚ РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅР°.');
     }
 
-    progressCb?.('Колода открыта. Выбери карту в окне SailorM...');
+    progressCb?.('РљРѕР»РѕРґР° РѕС‚РєСЂС‹С‚Р°. Р’С‹Р±РµСЂРё РєР°СЂС‚Сѓ РІ РѕРєРЅРµ SailorM...');
     const chosenCard = await smb.showDeckChoiceModal({
-      deckName: deckMeta?.name || 'Колода',
+      deckName: deckMeta?.name || 'РљРѕР»РѕРґР°',
       premiumAvailable: Boolean(user?.is_premium),
       cards
     });
 
-    progressCb?.(`Забираю карту: ${chosenCard.label}`);
+    progressCb?.(`Р—Р°Р±РёСЂР°СЋ РєР°СЂС‚Сѓ: ${chosenCard.label}`);
     await chooseInventoryDeckCard(deckInstanceId, chosenCard.id);
 
     return {
       deckId,
       deckInstanceId,
-      deckName: deckMeta?.name || 'Колода',
+      deckName: deckMeta?.name || 'РљРѕР»РѕРґР°',
       chosenCard,
       cards
     };
@@ -3857,7 +3835,7 @@
   function buildDeckCardLabel(card) {
     const characterName = String(card?.character?.name || '').trim();
     const titleName = String(card?.title?.main_name || '').trim();
-    return characterName || titleName || `Карта #${card?.id || '?'}`;
+    return characterName || titleName || `РљР°СЂС‚Р° #${card?.id || '?'}`;
   }
 
   function buildDeckCardSubtitle(card) {
@@ -3939,11 +3917,11 @@
     const remaining = Math.max(0, Number(task?.goal || 0) - Number(task?.progress || 0));
     const currentUser = await fetchCurrentUser();
     const currentUserId = Number(currentUser?.id || 0);
-    if (!currentUserId) throw new Error('Не удалось определить текущего пользователя для обмена.');
+    if (!currentUserId) throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ С‚РµРєСѓС‰РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РґР»СЏ РѕР±РјРµРЅР°.');
 
     const targetUserIds = await getExchangeTargetCandidates(currentUserId);
     if (!targetUserIds.length) {
-      throw new Error('Не удалось собрать список пользователей для случайного обмена.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР±СЂР°С‚СЊ СЃРїРёСЃРѕРє РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ РґР»СЏ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ РѕР±РјРµРЅР°.');
     }
 
     const ownCardsPayload = await listExchangeableCards(currentUserId, 1, 20).catch(() => null);
@@ -3976,7 +3954,7 @@
       };
     }
 
-    throw new Error('Не удалось подобрать обмен, в котором есть хотя бы одна доступная карточка.');
+    throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРѕР±СЂР°С‚СЊ РѕР±РјРµРЅ, РІ РєРѕС‚РѕСЂРѕРј РµСЃС‚СЊ С…РѕС‚СЏ Р±С‹ РѕРґРЅР° РґРѕСЃС‚СѓРїРЅР°СЏ РєР°СЂС‚РѕС‡РєР°.');
   }
 
   async function cancelExchangeOffer(currentUserId, targetUserId, exchangeId) {
@@ -3998,14 +3976,14 @@
 
           const refreshed = await getExchangeDetail(userId, exchangeId).catch(() => null);
           if (String(refreshed?.status || '').toLowerCase() === 'canceled') return refreshed;
-          lastError = new Error('Сайт не подтвердил отмену обмена.');
+          lastError = new Error('РЎР°Р№С‚ РЅРµ РїРѕРґС‚РІРµСЂРґРёР» РѕС‚РјРµРЅСѓ РѕР±РјРµРЅР°.');
         } catch (error) {
           lastError = error;
         }
       }
     }
 
-    throw lastError || new Error('Не удалось отменить отправленный обмен.');
+    throw lastError || new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РјРµРЅРёС‚СЊ РѕС‚РїСЂР°РІР»РµРЅРЅС‹Р№ РѕР±РјРµРЅ.');
   }
 
   async function findRecentExchangeOffer(currentUserId, targetUserId, creatorCardIds = [], partnerCardIds = []) {
@@ -4042,7 +4020,7 @@
 
   async function runExchangeTask(task, progressCb) {
     if (!isExchangeTask(task)) {
-      throw new Error('Эта задача не относится к обменам карточками.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РѕР±РјРµРЅР°Рј РєР°СЂС‚РѕС‡РєР°РјРё.');
     }
 
     const before = await loadState();
@@ -4058,18 +4036,18 @@
       };
     }
 
-    progressCb?.('Подбираю случайного пользователя для обмена...');
+    progressCb?.('РџРѕРґР±РёСЂР°СЋ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РґР»СЏ РѕР±РјРµРЅР°...');
     const plan = await buildExchangePlan(beforeTask);
     let exchangeId = 0;
     let canceledExchange = null;
     let mainError = null;
 
     try {
-      progressCb?.(`Отправляю обмен пользователю #${plan.targetUserId}...`);
+      progressCb?.(`РћС‚РїСЂР°РІР»СЏСЋ РѕР±РјРµРЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ #${plan.targetUserId}...`);
       const creatorCards = plan.creatorCard?.inventoryItemId ? [plan.creatorCard.inventoryItemId] : [];
       const partnerCards = plan.partnerCard?.inventoryItemId ? [plan.partnerCard.inventoryItemId] : [];
       if (!creatorCards.length && !partnerCards.length) {
-        throw new Error('Нельзя отправить обмен без единой карточки.');
+        throw new Error('РќРµР»СЊР·СЏ РѕС‚РїСЂР°РІРёС‚СЊ РѕР±РјРµРЅ Р±РµР· РµРґРёРЅРѕР№ РєР°СЂС‚РѕС‡РєРё.');
       }
 
       const createdExchange = await createExchangeOffer(plan.currentUserId, {
@@ -4090,10 +4068,10 @@
         exchangeId = Number(recentExchange?.id || 0);
       }
       if (!exchangeId) {
-        progressCb?.('Сайт не вернул id обмена сразу, проверю историю после засчёта.');
+        progressCb?.('РЎР°Р№С‚ РЅРµ РІРµСЂРЅСѓР» id РѕР±РјРµРЅР° СЃСЂР°Р·Сѓ, РїСЂРѕРІРµСЂСЋ РёСЃС‚РѕСЂРёСЋ РїРѕСЃР»Рµ Р·Р°СЃС‡С‘С‚Р°.');
       }
 
-      progressCb?.('Обмен отправлен. Жду засчёт battlepass...');
+      progressCb?.('РћР±РјРµРЅ РѕС‚РїСЂР°РІР»РµРЅ. Р–РґСѓ Р·Р°СЃС‡С‘С‚ battlepass...');
       let finalTask = await waitForTaskUpdate(
         beforeTask.id,
         nextTask => Number(nextTask.progress || 0) > currentProgress || smb.isTaskReady(nextTask),
@@ -4105,7 +4083,7 @@
       );
 
       if (Number(finalTask?.progress || 0) <= currentProgress) {
-        throw new Error('Сайт не засчитал отправку обмена в battlepass.');
+        throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» РѕС‚РїСЂР°РІРєСѓ РѕР±РјРµРЅР° РІ battlepass.');
       }
 
       await rememberExchangeTarget(plan.currentUserId, plan.targetUserId);
@@ -4116,15 +4094,15 @@
       }
 
       if (exchangeId > 0) {
-        progressCb?.(`Засчёт подтверждён. Отменяю обмен #${exchangeId}...`);
+        progressCb?.(`Р—Р°СЃС‡С‘С‚ РїРѕРґС‚РІРµСЂР¶РґС‘РЅ. РћС‚РјРµРЅСЏСЋ РѕР±РјРµРЅ #${exchangeId}...`);
         canceledExchange = await cancelExchangeOffer(plan.currentUserId, plan.targetUserId, exchangeId);
       } else {
-        progressCb?.('Засчёт подтверждён, но id обмена сайт не вернул.');
+        progressCb?.('Р—Р°СЃС‡С‘С‚ РїРѕРґС‚РІРµСЂР¶РґС‘РЅ, РЅРѕ id РѕР±РјРµРЅР° СЃР°Р№С‚ РЅРµ РІРµСЂРЅСѓР».');
       }
 
       let claimed = false;
       if (smb.isTaskReady(finalTask)) {
-        progressCb?.(`Забираю награду: ${finalTask.name}`);
+        progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
         await smb.claimTask(finalTask.id);
         claimed = true;
         const claimedState = await loadState();
@@ -4147,13 +4125,13 @@
     } finally {
       if (exchangeId > 0 && !canceledExchange) {
         try {
-          progressCb?.(`Пробую убрать незавершённый обмен #${exchangeId}...`);
+          progressCb?.(`РџСЂРѕР±СѓСЋ СѓР±СЂР°С‚СЊ РЅРµР·Р°РІРµСЂС€С‘РЅРЅС‹Р№ РѕР±РјРµРЅ #${exchangeId}...`);
           canceledExchange = await cancelExchangeOffer(plan.currentUserId, plan.targetUserId, exchangeId);
         } catch (cancelError) {
           if (!mainError) {
             throw cancelError;
           }
-          progressCb?.(`Не удалось отменить обмен #${exchangeId}: ${cancelError?.message || cancelError}`);
+          progressCb?.(`РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РјРµРЅРёС‚СЊ РѕР±РјРµРЅ #${exchangeId}: ${cancelError?.message || cancelError}`);
         }
       }
     }
@@ -4161,7 +4139,7 @@
 
   async function runNewCardsTask(task, progressCb) {
     if (!isDeckCardTask(task)) {
-      throw new Error('Эта задача не относится к открытию новых карточек.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РѕС‚РєСЂС‹С‚РёСЋ РЅРѕРІС‹С… РєР°СЂС‚РѕС‡РµРє.');
     }
 
     const before = await loadState();
@@ -4177,7 +4155,7 @@
       };
     }
 
-    progressCb?.('Подготавливаю колоду с новыми карточками...');
+    progressCb?.('РџРѕРґРіРѕС‚Р°РІР»РёРІР°СЋ РєРѕР»РѕРґСѓ СЃ РЅРѕРІС‹РјРё РєР°СЂС‚РѕС‡РєР°РјРё...');
 
     const deckCandidates = await getDeckIdCandidatesForTask(beforeTask);
     const deckResult = await openConfiguredDeck(deckCandidates, progressCb);
@@ -4193,12 +4171,12 @@
     );
 
     if (Number(finalTask?.progress || 0) <= currentProgress) {
-      throw new Error('Сайт не засчитал открытие новой карточки после выбора.');
+      throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» РѕС‚РєСЂС‹С‚РёРµ РЅРѕРІРѕР№ РєР°СЂС‚РѕС‡РєРё РїРѕСЃР»Рµ РІС‹Р±РѕСЂР°.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -4217,7 +4195,7 @@
 
   async function runCardUpgradeTask(task, progressCb) {
     if (!isCardUpgradeTask(task)) {
-      throw new Error('Эта задача не относится к апгрейду карточек.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє Р°РїРіСЂРµР№РґСѓ РєР°СЂС‚РѕС‡РµРє.');
     }
 
     const before = await loadState();
@@ -4236,31 +4214,31 @@
     const user = await getCurrentUserProfile();
     const currentUserId = Number(user?.id || 0);
     if (!currentUserId) {
-      throw new Error('Не удалось определить текущий аккаунт для апгрейда карт.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ С‚РµРєСѓС‰РёР№ Р°РєРєР°СѓРЅС‚ РґР»СЏ Р°РїРіСЂРµР№РґР° РєР°СЂС‚.');
     }
 
-    progressCb?.('Загружаю карты для апгрейда...');
+    progressCb?.('Р—Р°РіСЂСѓР¶Р°СЋ РєР°СЂС‚С‹ РґР»СЏ Р°РїРіСЂРµР№РґР°...');
     const rawItems = await listCardUpgradeInventory(currentUserId, progressCb);
     const plan = buildCardUpgradePlan(rawItems);
 
     if (!plan.commonCandidates.length && !plan.exclusiveCandidates.some(item => !item.disabled) && !plan.randomCandidates.some(item => !item.disabled)) {
-      throw new Error('Не нашёл подходящие карты для апгрейда. Нужно 2 карты одного тайтла и ранга или 3 карты одного ранга из разных произведений.');
+      throw new Error('РќРµ РЅР°С€С‘Р» РїРѕРґС…РѕРґСЏС‰РёРµ РєР°СЂС‚С‹ РґР»СЏ Р°РїРіСЂРµР№РґР°. РќСѓР¶РЅРѕ 2 РєР°СЂС‚С‹ РѕРґРЅРѕРіРѕ С‚Р°Р№С‚Р»Р° Рё СЂР°РЅРіР° РёР»Рё 3 РєР°СЂС‚С‹ РѕРґРЅРѕРіРѕ СЂР°РЅРіР° РёР· СЂР°Р·РЅС‹С… РїСЂРѕРёР·РІРµРґРµРЅРёР№.');
     }
 
     if (typeof smb.showCardUpgradeModal !== 'function') {
-      throw new Error('Окно выбора апгрейда карт не инициализировано.');
+      throw new Error('РћРєРЅРѕ РІС‹Р±РѕСЂР° Р°РїРіСЂРµР№РґР° РєР°СЂС‚ РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅРѕ.');
     }
 
-    progressCb?.('Открыл окно выбора апгрейда карт.');
+    progressCb?.('РћС‚РєСЂС‹Р» РѕРєРЅРѕ РІС‹Р±РѕСЂР° Р°РїРіСЂРµР№РґР° РєР°СЂС‚.');
     const selected = await smb.showCardUpgradeModal(plan);
     if (!selected?.cardIds?.length || !selected?.mergeType) {
-      throw new Error('Не выбран вариант апгрейда карт.');
+      throw new Error('РќРµ РІС‹Р±СЂР°РЅ РІР°СЂРёР°РЅС‚ Р°РїРіСЂРµР№РґР° РєР°СЂС‚.');
     }
 
-    progressCb?.(`Запускаю ${selected.typeLabel || 'апгрейд'}: ${selected.label}`);
+    progressCb?.(`Р—Р°РїСѓСЃРєР°СЋ ${selected.typeLabel || 'Р°РїРіСЂРµР№Рґ'}: ${selected.label}`);
     const upgradePayload = await submitCardUpgrade(currentUserId, selected);
     const resultCard = normalizeUpgradeResultCard(upgradePayload);
-    progressCb?.(`Получена карта: ${resultCard.label}${resultCard.rankLabel ? ` · ${resultCard.rankLabel}` : ''}`);
+    progressCb?.(`РџРѕР»СѓС‡РµРЅР° РєР°СЂС‚Р°: ${resultCard.label}${resultCard.rankLabel ? ` В· ${resultCard.rankLabel}` : ''}`);
 
     if (typeof smb.showCardUpgradeResultModal === 'function') {
       await smb.showCardUpgradeResultModal({
@@ -4280,12 +4258,12 @@
     );
 
     if (Number(finalTask?.progress || 0) <= currentProgress) {
-      throw new Error('Сайт не засчитал апгрейд карточек после выполнения.');
+      throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» Р°РїРіСЂРµР№Рґ РєР°СЂС‚РѕС‡РµРє РїРѕСЃР»Рµ РІС‹РїРѕР»РЅРµРЅРёСЏ.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -4305,7 +4283,7 @@
     assertTaskAutomatable(task);
 
     if (!isAutoSearchTask(task)) {
-      throw new Error('Эта задача не относится к жанрам или категориям.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє Р¶Р°РЅСЂР°Рј РёР»Рё РєР°С‚РµРіРѕСЂРёСЏРј.');
     }
 
     const before = await loadState();
@@ -4322,11 +4300,11 @@
       };
     }
 
-    progressCb?.('Подбираю тайтлы через каталог /manga...');
+    progressCb?.('РџРѕРґР±РёСЂР°СЋ С‚Р°Р№С‚Р»С‹ С‡РµСЂРµР· РєР°С‚Р°Р»РѕРі /manga...');
     const plan = await buildSearchTaskPlan(beforeTask);
 
     if (!plan.selectedTitles.length) {
-      throw new Error('Не удалось найти подходящие главы для этой задачи.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РїРѕРґС…РѕРґСЏС‰РёРµ РіР»Р°РІС‹ РґР»СЏ СЌС‚РѕР№ Р·Р°РґР°С‡Рё.');
     }
 
     const remaining = Math.max(0, goal - currentProgress);
@@ -4345,16 +4323,16 @@
       attempts: 10,
       delayMs: 450,
       progressCb,
-      batchStartMessage: (currentBatch, totalBatches) => `Открываю главы пакетами: ${currentBatch}/${totalBatches}`,
+      batchStartMessage: (currentBatch, totalBatches) => `РћС‚РєСЂС‹РІР°СЋ РіР»Р°РІС‹ РїР°РєРµС‚Р°РјРё: ${currentBatch}/${totalBatches}`,
       maxNoProgressItems: 3,
       runItem: async title => {
-        progressCb?.(`Отмечаю главу: ${getReadableTitleName(title)}`);
+        progressCb?.(`РћС‚РјРµС‡Р°СЋ РіР»Р°РІСѓ: ${getReadableTitleName(title)}`);
         await submitChapterView(title.chapterId);
         await rememberViewedChapter(title.chapterId, 'reading');
         await rememberVisitedTitle(beforeTask.id, title.dir);
         return title;
       },
-      onNoProgress: title => `Без прироста: ${getReadableTitleName(title)}`
+      onNoProgress: title => `Р‘РµР· РїСЂРёСЂРѕСЃС‚Р°: ${getReadableTitleName(title)}`
     });
 
     const openedTitles = batchResult.processedItems;
@@ -4374,12 +4352,12 @@
     }
 
     if (Number(finalTask?.progress || 0) <= Number(beforeTask.progress || 0)) {
-      throw new Error('Сайт принял чтение найденных глав, но battlepass не увеличил прогресс задачи.');
+      throw new Error('РЎР°Р№С‚ РїСЂРёРЅСЏР» С‡С‚РµРЅРёРµ РЅР°Р№РґРµРЅРЅС‹С… РіР»Р°РІ, РЅРѕ battlepass РЅРµ СѓРІРµР»РёС‡РёР» РїСЂРѕРіСЂРµСЃСЃ Р·Р°РґР°С‡Рё.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const refreshed = await loadState();
@@ -4401,7 +4379,7 @@
     assertTaskAutomatable(task);
 
     if (!isWorldTravelTask(task)) {
-      throw new Error('Эта задача не относится к путешествию по мирам.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РїСѓС‚РµС€РµСЃС‚РІРёСЋ РїРѕ РјРёСЂР°Рј.');
     }
 
     const before = await loadState();
@@ -4425,13 +4403,13 @@
     for (let round = 1; round <= 3 && currentProgress < goal; round += 1) {
       const progressBeforeRound = currentProgress;
       progressCb?.(round === 1
-        ? 'Подбираю новые тайтлы через каталог /manga...'
-        : `Добираю оставшиеся новые тайтлы: раунд ${round}/3...`);
+        ? 'РџРѕРґР±РёСЂР°СЋ РЅРѕРІС‹Рµ С‚Р°Р№С‚Р»С‹ С‡РµСЂРµР· РєР°С‚Р°Р»РѕРі /manga...'
+        : `Р”РѕР±РёСЂР°СЋ РѕСЃС‚Р°РІС€РёРµСЃСЏ РЅРѕРІС‹Рµ С‚Р°Р№С‚Р»С‹: СЂР°СѓРЅРґ ${round}/3...`);
 
       const plan = await buildWorldTravelPlan(finalTask);
       if (!plan.selectedTitles.length) {
         if (!hadAnyCandidates) {
-          throw new Error('Не удалось найти новые тайтлы с бесплатными главами.');
+          throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РЅРѕРІС‹Рµ С‚Р°Р№С‚Р»С‹ СЃ Р±РµСЃРїР»Р°С‚РЅС‹РјРё РіР»Р°РІР°РјРё.');
         }
         break;
       }
@@ -4453,16 +4431,16 @@
         attempts: 12,
         delayMs: 550,
         progressCb,
-        batchStartMessage: (currentBatch, totalBatches) => `Открываю новые тайтлы по одному: ${currentBatch}/${totalBatches}`,
+        batchStartMessage: (currentBatch, totalBatches) => `РћС‚РєСЂС‹РІР°СЋ РЅРѕРІС‹Рµ С‚Р°Р№С‚Р»С‹ РїРѕ РѕРґРЅРѕРјСѓ: ${currentBatch}/${totalBatches}`,
         maxNoProgressItems: 3,
         runItem: async title => {
-          progressCb?.(`Отмечаю новый тайтл: ${getReadableTitleName(title)}`);
+          progressCb?.(`РћС‚РјРµС‡Р°СЋ РЅРѕРІС‹Р№ С‚Р°Р№С‚Р»: ${getReadableTitleName(title)}`);
           await submitChapterView(title.chapterId);
           await rememberVisitedTitle(beforeTask.id, title.dir);
           await rememberViewedChapter(title.chapterId, 'reading');
           return title;
         },
-        onNoProgress: title => `Без прироста: ${getReadableTitleName(title)}`
+        onNoProgress: title => `Р‘РµР· РїСЂРёСЂРѕСЃС‚Р°: ${getReadableTitleName(title)}`
       });
 
       openedTitles.push(...batchResult.processedItems);
@@ -4482,13 +4460,13 @@
       }
 
       if (currentProgress <= progressBeforeRound) {
-        throw new Error('Сайт принял чтение новых тайтлов, но battlepass не увеличил прогресс задачи.');
+        throw new Error('РЎР°Р№С‚ РїСЂРёРЅСЏР» С‡С‚РµРЅРёРµ РЅРѕРІС‹С… С‚Р°Р№С‚Р»РѕРІ, РЅРѕ battlepass РЅРµ СѓРІРµР»РёС‡РёР» РїСЂРѕРіСЂРµСЃСЃ Р·Р°РґР°С‡Рё.');
       }
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const refreshed = await loadState();
@@ -4528,11 +4506,11 @@
     for (let chunkIndex = 0; chunkIndex < chunks.length && currentProgress < goal; chunkIndex += 1) {
       const chunk = chunks[chunkIndex];
       const progressBeforeChunk = currentProgress;
-      progressCb?.(`Читаю главы быстрыми сериями: ${chunkIndex + 1}/${chunks.length}`);
+      progressCb?.(`Р§РёС‚Р°СЋ РіР»Р°РІС‹ Р±С‹СЃС‚СЂС‹РјРё СЃРµСЂРёСЏРјРё: ${chunkIndex + 1}/${chunks.length}`);
 
       for (const chapter of chunk) {
         try {
-          progressCb?.(`Отмечаю главу: ${getReadableChapterLabel(chapter)}`);
+          progressCb?.(`РћС‚РјРµС‡Р°СЋ РіР»Р°РІСѓ: ${getReadableChapterLabel(chapter)}`);
           await submitChapterView(chapter.chapterId);
           await rememberViewedChapter(chapter.chapterId, 'reading');
           processedItems.push(chapter);
@@ -4559,11 +4537,11 @@
       if (Number(finalTask?.progress || 0) > currentProgress) {
         currentProgress = Number(finalTask.progress || 0);
         noProgressStreak = 0;
-        progressCb?.(`Прогресс вырос: ${currentProgress} / ${goal}`);
+        progressCb?.(`РџСЂРѕРіСЂРµСЃСЃ РІС‹СЂРѕСЃ: ${currentProgress} / ${goal}`);
       } else {
         noProgressItems.push(...chunk);
         noProgressStreak += 1;
-        progressCb?.('Быстрая серия выполнена без прироста прогресса.');
+        progressCb?.('Р‘С‹СЃС‚СЂР°СЏ СЃРµСЂРёСЏ РІС‹РїРѕР»РЅРµРЅР° Р±РµР· РїСЂРёСЂРѕСЃС‚Р° РїСЂРѕРіСЂРµСЃСЃР°.');
       }
 
       if (Number(finalTask?.progress || 0) >= goal || smb.isTaskReady(finalTask)) {
@@ -4571,7 +4549,7 @@
       }
 
       if (noProgressStreak >= 2) {
-        progressCb?.('Останавливаю чтение: сайт принял действия, но battlepass не увеличил прогресс.');
+        progressCb?.('РћСЃС‚Р°РЅР°РІР»РёРІР°СЋ С‡С‚РµРЅРёРµ: СЃР°Р№С‚ РїСЂРёРЅСЏР» РґРµР№СЃС‚РІРёСЏ, РЅРѕ battlepass РЅРµ СѓРІРµР»РёС‡РёР» РїСЂРѕРіСЂРµСЃСЃ.');
         break;
       }
     }
@@ -4603,11 +4581,11 @@
     for (let chunkIndex = 0; chunkIndex < chunks.length && currentProgress < goal; chunkIndex += 1) {
       const chunk = chunks[chunkIndex];
       const progressBeforeChunk = currentProgress;
-      progressCb?.(`Ставлю лайки быстрыми сериями: ${chunkIndex + 1}/${chunks.length}`);
+      progressCb?.(`РЎС‚Р°РІР»СЋ Р»Р°Р№РєРё Р±С‹СЃС‚СЂС‹РјРё СЃРµСЂРёСЏРјРё: ${chunkIndex + 1}/${chunks.length}`);
 
       for (const chapter of chunk) {
         try {
-          progressCb?.(`Ставлю лайк: ${getReadableChapterLabel(chapter)}`);
+          progressCb?.(`РЎС‚Р°РІР»СЋ Р»Р°Р№Рє: ${getReadableChapterLabel(chapter)}`);
           await submitChapterLike(chapter.chapterId);
           processedItems.push(chapter);
         } catch (error) {
@@ -4633,11 +4611,11 @@
       if (Number(finalTask?.progress || 0) > currentProgress) {
         currentProgress = Number(finalTask.progress || 0);
         noProgressStreak = 0;
-        progressCb?.(`Прогресс вырос: ${currentProgress} / ${goal}`);
+        progressCb?.(`РџСЂРѕРіСЂРµСЃСЃ РІС‹СЂРѕСЃ: ${currentProgress} / ${goal}`);
       } else {
         noProgressItems.push(...chunk);
         noProgressStreak += 1;
-        progressCb?.('Быстрая серия лайков выполнена без прироста прогресса.');
+        progressCb?.('Р‘С‹СЃС‚СЂР°СЏ СЃРµСЂРёСЏ Р»Р°Р№РєРѕРІ РІС‹РїРѕР»РЅРµРЅР° Р±РµР· РїСЂРёСЂРѕСЃС‚Р° РїСЂРѕРіСЂРµСЃСЃР°.');
       }
 
       if (Number(finalTask?.progress || 0) >= goal || smb.isTaskReady(finalTask)) {
@@ -4645,7 +4623,7 @@
       }
 
       if (noProgressStreak >= 2) {
-        progressCb?.('Останавливаю лайки: сайт принял действия, но battlepass не увеличил прогресс.');
+        progressCb?.('РћСЃС‚Р°РЅР°РІР»РёРІР°СЋ Р»Р°Р№РєРё: СЃР°Р№С‚ РїСЂРёРЅСЏР» РґРµР№СЃС‚РІРёСЏ, РЅРѕ battlepass РЅРµ СѓРІРµР»РёС‡РёР» РїСЂРѕРіСЂРµСЃСЃ.');
         break;
       }
     }
@@ -4657,7 +4635,7 @@
     assertTaskAutomatable(task);
 
     if (!isChapterReadTask(task)) {
-      throw new Error('Эта задача не относится к чтению глав.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє С‡С‚РµРЅРёСЋ РіР»Р°РІ.');
     }
 
     const before = await loadState();
@@ -4681,13 +4659,13 @@
     for (let round = 1; round <= 4 && currentProgress < goal; round += 1) {
       const progressBeforeRound = currentProgress;
       progressCb?.(round === 1
-        ? 'Подбираю новые главы через API...'
-        : `Добираю оставшийся прогресс по главам: раунд ${round}/4...`);
+        ? 'РџРѕРґР±РёСЂР°СЋ РЅРѕРІС‹Рµ РіР»Р°РІС‹ С‡РµСЂРµР· API...'
+        : `Р”РѕР±РёСЂР°СЋ РѕСЃС‚Р°РІС€РёР№СЃСЏ РїСЂРѕРіСЂРµСЃСЃ РїРѕ РіР»Р°РІР°Рј: СЂР°СѓРЅРґ ${round}/4...`);
 
       const plan = await buildReadingPlan(finalTask);
       if (!plan.selectedChapters.length) {
         if (!hadAnyCandidates) {
-          throw new Error('Не удалось найти новые бесплатные главы.');
+          throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РЅРѕРІС‹Рµ Р±РµСЃРїР»Р°С‚РЅС‹Рµ РіР»Р°РІС‹.');
         }
         break;
       }
@@ -4735,13 +4713,13 @@
       }
 
       if (currentProgress <= progressBeforeRound) {
-        throw new Error('Сайт принял чтение глав, но battlepass не увеличил прогресс задачи.');
+        throw new Error('РЎР°Р№С‚ РїСЂРёРЅСЏР» С‡С‚РµРЅРёРµ РіР»Р°РІ, РЅРѕ battlepass РЅРµ СѓРІРµР»РёС‡РёР» РїСЂРѕРіСЂРµСЃСЃ Р·Р°РґР°С‡Рё.');
       }
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const refreshed = await loadState();
@@ -4761,7 +4739,7 @@
     assertTaskAutomatable(task);
 
     if (!isLikeTask(task)) {
-      throw new Error('Эта задача не относится к лайкам.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє Р»Р°Р№РєР°Рј.');
     }
 
     const before = await loadState();
@@ -4779,11 +4757,11 @@
       };
     }
 
-    progressCb?.('Подбираю нелайкнутые главы через API...');
+    progressCb?.('РџРѕРґР±РёСЂР°СЋ РЅРµР»Р°Р№РєРЅСѓС‚С‹Рµ РіР»Р°РІС‹ С‡РµСЂРµР· API...');
     const plan = await buildLikePlan(beforeTask);
 
     if (!plan.selectedChapters.length) {
-      throw new Error('Не удалось найти доступные нелайкнутые главы.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РґРѕСЃС‚СѓРїРЅС‹Рµ РЅРµР»Р°Р№РєРЅСѓС‚С‹Рµ РіР»Р°РІС‹.');
     }
 
     const batchResult = await runFastChapterLikeChunks(plan.selectedChapters, {
@@ -4819,12 +4797,12 @@
     }
 
     if (Number(finalTask?.progress || 0) <= Number(beforeTask.progress || 0)) {
-      throw new Error('Сайт принял лайки глав, но battlepass не увеличил прогресс задачи.');
+      throw new Error('РЎР°Р№С‚ РїСЂРёРЅСЏР» Р»Р°Р№РєРё РіР»Р°РІ, РЅРѕ battlepass РЅРµ СѓРІРµР»РёС‡РёР» РїСЂРѕРіСЂРµСЃСЃ Р·Р°РґР°С‡Рё.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const refreshed = await loadState();
@@ -4925,7 +4903,7 @@
     assertTaskAutomatable(task);
 
     if (!isDirectGameTask(task)) {
-      throw new Error('Эта задача не поддерживает прямое выполнение через API.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ РїСЂСЏРјРѕРµ РІС‹РїРѕР»РЅРµРЅРёРµ С‡РµСЂРµР· API.');
     }
 
     const before = await loadState();
@@ -4933,7 +4911,7 @@
     const gameKey = smb.gameFromTask(beforeTask);
 
     if (!gameKey) {
-      throw new Error('Не удалось определить мини-игру для этой задачи.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РјРёРЅРё-РёРіСЂСѓ РґР»СЏ СЌС‚РѕР№ Р·Р°РґР°С‡Рё.');
     }
 
     if (Number(beforeTask.progress || 0) >= Number(beforeTask.goal || 0)) {
@@ -4944,7 +4922,7 @@
       };
     }
 
-    progressCb?.(`Отправляю прогресс ${beforeTask.name} через API...`);
+    progressCb?.(`РћС‚РїСЂР°РІР»СЏСЋ РїСЂРѕРіСЂРµСЃСЃ ${beforeTask.name} С‡РµСЂРµР· API...`);
     await smb.manageMinigame(smb.GAME_IDS[gameKey]);
     let finalTask = await waitForTaskUpdate(
       beforeTask.id,
@@ -4958,7 +4936,7 @@
     let claimed = false;
 
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -4976,7 +4954,7 @@
     assertTaskAutomatable(task);
 
     if (!isCommentTask(task)) {
-      throw new Error('Эта задача не относится к комментариям.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РєРѕРјРјРµРЅС‚Р°СЂРёСЏРј.');
     }
 
     const before = await loadState();
@@ -4995,19 +4973,19 @@
     }
 
     const { commentText } = await getAutomationCopySettings();
-    progressCb?.('Публикую комментарий...');
+    progressCb?.('РџСѓР±Р»РёРєСѓСЋ РєРѕРјРјРµРЅС‚Р°СЂРёР№...');
     let created;
     try {
       created = await submitComment(commentText);
     } catch (error) {
       if (isCommentingUnavailableError(error)) {
-        throw new Error('Для этого аккаунта комментарии сейчас недоступны.');
+        throw new Error('Р”Р»СЏ СЌС‚РѕРіРѕ Р°РєРєР°СѓРЅС‚Р° РєРѕРјРјРµРЅС‚Р°СЂРёРё СЃРµР№С‡Р°СЃ РЅРµРґРѕСЃС‚СѓРїРЅС‹.');
       }
       throw error;
     }
     const commentId = Number(created?.content?.id || 0) || null;
     if (!commentId) {
-      throw new Error('Сайт не вернул id комментария.');
+      throw new Error('РЎР°Р№С‚ РЅРµ РІРµСЂРЅСѓР» id РєРѕРјРјРµРЅС‚Р°СЂРёСЏ.');
     }
 
     await rememberCommentId(commentId);
@@ -5022,14 +5000,14 @@
       finalTask = refreshed.tasks.find(item => item.id === beforeTask.id) || finalTask;
 
       if (smb.isTaskReady(finalTask)) {
-        progressCb?.(`Забираю награду: ${finalTask.name}`);
+        progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
         await smb.claimTask(finalTask.id);
         claimed = true;
         const claimedState = await loadState();
         finalTask = claimedState.tasks.find(item => item.id === beforeTask.id) || finalTask;
       }
     } finally {
-      progressCb?.('Удаляю комментарий...');
+      progressCb?.('РЈРґР°Р»СЏСЋ РєРѕРјРјРµРЅС‚Р°СЂРёР№...');
       try {
         await deleteComment(commentId);
         deleted = true;
@@ -5039,7 +5017,7 @@
     }
 
     if (Number(finalTask.progress || 0) <= currentProgress) {
-      throw new Error('Сайт не засчитал комментарий.');
+      throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» РєРѕРјРјРµРЅС‚Р°СЂРёР№.');
     }
 
     return {
@@ -5088,7 +5066,7 @@
       created = await submitCommentReply(selectedReply.commentId, replyText);
     } catch (error) {
       if (isCommentingUnavailableError(error)) {
-        throw new Error('Для этого аккаунта комментарии сейчас недоступны.');
+        throw new Error('Р”Р»СЏ СЌС‚РѕРіРѕ Р°РєРєР°СѓРЅС‚Р° РєРѕРјРјРµРЅС‚Р°СЂРёРё СЃРµР№С‡Р°СЃ РЅРµРґРѕСЃС‚СѓРїРЅС‹.');
       }
       throw error;
     }
@@ -5198,7 +5176,7 @@
     }
 
     if (Number(finalTask.progress || 0) <= Number(beforeTask.progress || 0)) {
-      throw new Error('Сайт не засчитал оценку комментариев.');
+      throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» РѕС†РµРЅРєСѓ РєРѕРјРјРµРЅС‚Р°СЂРёРµРІ.');
     }
 
     if (Number(finalTask.progress || 0) >= goal && !smb.isTaskReady(finalTask)) {
@@ -5236,7 +5214,7 @@
     assertTaskAutomatable(task);
 
     if (!isSimilarTask(task)) {
-      throw new Error('Эта задача не относится к похожим тайтлам.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РїРѕС…РѕР¶РёРј С‚Р°Р№С‚Р»Р°Рј.');
     }
 
     const before = await loadState();
@@ -5253,10 +5231,10 @@
       };
     }
 
-    progressCb?.('Подбираю пары похожих тайтлов...');
+    progressCb?.('РџРѕРґР±РёСЂР°СЋ РїР°СЂС‹ РїРѕС…РѕР¶РёС… С‚Р°Р№С‚Р»РѕРІ...');
     const plan = await buildSimilarPlan(beforeTask);
     if (!plan.selectedVotes.length) {
-      throw new Error('Не удалось найти пары для голосования в похожем.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РїР°СЂС‹ РґР»СЏ РіРѕР»РѕСЃРѕРІР°РЅРёСЏ РІ РїРѕС…РѕР¶РµРј.');
     }
 
     const maxVotes = Math.max(0, goal - currentProgress);
@@ -5271,9 +5249,9 @@
       attempts: 4,
       delayMs: 140,
       progressCb,
-      batchStartMessage: (currentBatch, totalBatches) => `Голосую за похожее пакетами: ${currentBatch}/${totalBatches}`,
+      batchStartMessage: (currentBatch, totalBatches) => `Р“РѕР»РѕСЃСѓСЋ Р·Р° РїРѕС…РѕР¶РµРµ РїР°РєРµС‚Р°РјРё: ${currentBatch}/${totalBatches}`,
       runItem: async entry => {
-        progressCb?.(`Голосую за похожее: ${entry.baseTitle} -> ${entry.similarTitle}`);
+        progressCb?.(`Р“РѕР»РѕСЃСѓСЋ Р·Р° РїРѕС…РѕР¶РµРµ: ${entry.baseTitle} -> ${entry.similarTitle}`);
         await submitSimilarVote(entry.title1Dir, entry.title2Dir, entry.voteType);
         await rememberSimilarVote(beforeTask.id, entry.pairKey);
         return entry;
@@ -5286,7 +5264,7 @@
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -5305,7 +5283,7 @@
     assertTaskAutomatable(task);
 
     if (!isProfileTask(task)) {
-      throw new Error('Эта задача не относится к посещению профилей.');
+      throw new Error('Р­С‚Р° Р·Р°РґР°С‡Р° РЅРµ РѕС‚РЅРѕСЃРёС‚СЃСЏ Рє РїРѕСЃРµС‰РµРЅРёСЋ РїСЂРѕС„РёР»РµР№.');
     }
 
     const before = await loadState();
@@ -5322,10 +5300,10 @@
       };
     }
 
-    progressCb?.('Подбираю чужие профили...');
+    progressCb?.('РџРѕРґР±РёСЂР°СЋ С‡СѓР¶РёРµ РїСЂРѕС„РёР»Рё...');
     const plan = await buildProfilePlan(beforeTask);
     if (!plan.selectedUserIds.length) {
-      throw new Error('Не удалось найти подходящие чужие профили.');
+      throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р№С‚Рё РїРѕРґС…РѕРґСЏС‰РёРµ С‡СѓР¶РёРµ РїСЂРѕС„РёР»Рё.');
     }
 
     const maxProfiles = Math.max(0, goal - currentProgress);
@@ -5340,10 +5318,10 @@
       attempts: 10,
       delayMs: 700,
       progressCb,
-      batchStartMessage: (currentBatch, totalBatches) => `Открываю профили: ${currentBatch}/${totalBatches}`,
-      onNoProgress: userId => `Визит в профиль #${userId} не дал прогресса, пробую следующий профиль.`,
+      batchStartMessage: (currentBatch, totalBatches) => `РћС‚РєСЂС‹РІР°СЋ РїСЂРѕС„РёР»Рё: ${currentBatch}/${totalBatches}`,
+      onNoProgress: userId => `Р’РёР·РёС‚ РІ РїСЂРѕС„РёР»СЊ #${userId} РЅРµ РґР°Р» РїСЂРѕРіСЂРµСЃСЃР°, РїСЂРѕР±СѓСЋ СЃР»РµРґСѓСЋС‰РёР№ РїСЂРѕС„РёР»СЊ.`,
       runItem: async userId => {
-        progressCb?.(`Проверяю профиль пользователя #${userId} через API...`);
+        progressCb?.(`РџСЂРѕРІРµСЂСЏСЋ РїСЂРѕС„РёР»СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ #${userId} С‡РµСЂРµР· API...`);
         const directResult = await submitProfileVisitDirect(userId);
         await rememberProfileVisit(userId);
         return directResult;
@@ -5355,12 +5333,12 @@
     currentProgress = batchResult.currentProgress;
 
     if (Number(finalTask.progress || 0) <= Number(beforeTask.progress || 0)) {
-      throw new Error('Сайт не засчитал посещение чужого профиля через запрос с текущей страницы.');
+      throw new Error('РЎР°Р№С‚ РЅРµ Р·Р°СЃС‡РёС‚Р°Р» РїРѕСЃРµС‰РµРЅРёРµ С‡СѓР¶РѕРіРѕ РїСЂРѕС„РёР»СЏ С‡РµСЂРµР· Р·Р°РїСЂРѕСЃ СЃ С‚РµРєСѓС‰РµР№ СЃС‚СЂР°РЅРёС†С‹.');
     }
 
     let claimed = false;
     if (smb.isTaskReady(finalTask)) {
-      progressCb?.(`Забираю награду: ${finalTask.name}`);
+      progressCb?.(`Р—Р°Р±РёСЂР°СЋ РЅР°РіСЂР°РґСѓ: ${finalTask.name}`);
       await smb.claimTask(finalTask.id);
       claimed = true;
       const claimedState = await loadState();
@@ -5497,7 +5475,7 @@
           applied: false,
           error: error?.message || String(error)
         };
-        progressCb?.(`Гильдия ${entry.dir} не открылась: ${result.error}`);
+        progressCb?.(`Р“РёР»СЊРґРёСЏ ${entry.dir} РЅРµ РѕС‚РєСЂС‹Р»Р°СЃСЊ: ${result.error}`);
       }
 
       guilds.push({
@@ -5522,7 +5500,7 @@
       }
 
       if (!progressed && result?.applied) {
-        progressCb?.(`Заявка в ${entry.dir} ушла, но battlepass пока не обновил прогресс.`);
+        progressCb?.(`Р—Р°СЏРІРєР° РІ ${entry.dir} СѓС€Р»Р°, РЅРѕ battlepass РїРѕРєР° РЅРµ РѕР±РЅРѕРІРёР» РїСЂРѕРіСЂРµСЃСЃ.`);
       }
 
       if (result?.applied || result?.status === 'already_requested' || result?.status === 'error') {
@@ -5627,6 +5605,7 @@
     runNewCardsTask
   };
 })();
+
 
 
 
