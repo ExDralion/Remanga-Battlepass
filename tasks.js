@@ -1926,6 +1926,14 @@
           reject(new Error(chrome.runtime.lastError.message));
           return;
         }
+        if (
+          (message?.type === 'smbp_run_remanga_api' || message?.type === 'smbp_run_profile_context_api') &&
+          response &&
+          Number.isFinite(Number(response.status || 0))
+        ) {
+          resolve(response);
+          return;
+        }
         if (!response?.ok) {
           reject(new Error(response?.error || 'Р¤РѕРЅРѕРІС‹Р№ СЃС†РµРЅР°СЂРёР№ РЅРµ РІС‹РїРѕР»РЅРёР»СЃСЏ.'));
           return;
@@ -2979,9 +2987,13 @@
     } finally {
       if (restorePlan?.itemId || restorePlan?.unequip) {
         progressCb?.(`Возвращаю исходный предмет через API: ${restorePlan.categoryKey}...`);
-        const restoreResult = await restoreCustomizationViaApi(plan, restorePlan);
-        if (!restoreResult?.restored) {
-          throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РІРµСЂРЅСѓС‚СЊ РёСЃС…РѕРґРЅС‹Р№ РїСЂРµРґРјРµС‚ РєР°СЃС‚РѕРјРёР·Р°С†РёРё РїРѕСЃР»Рµ РїСЂРѕРІРµСЂРєРё Р·Р°РґР°РЅРёСЏ.');
+        try {
+          const restoreResult = await restoreCustomizationViaApi(plan, restorePlan);
+          if (!restoreResult?.restored) {
+            progressCb?.('Не удалось подтвердить возврат исходного предмета, но задача уже обработана.');
+          }
+        } catch (error) {
+          progressCb?.(`Не удалось вернуть исходный предмет через API: ${error?.message || error}`);
         }
       }
     }
