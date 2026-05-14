@@ -16,7 +16,7 @@ GitHub-версия не содержит привязки к конкретно
 - Поддерживает blacklist тайтлов.
 - Показывает overview аккаунта и прогресса Battlepass.
 
-## Основные разделы
+## Разделы
 
 - `Overview` - информация об аккаунте, опыте, уровнях и наградах Battlepass.
 - `Tasks` - список задач, прогресс, очередь и запуск автоматизации.
@@ -29,27 +29,26 @@ GitHub-версия не содержит привязки к конкретно
 2. Откройте `chrome://extensions/` или `edge://extensions/`.
 3. Включите режим разработчика.
 4. Нажмите `Load unpacked` / `Загрузить распакованное расширение`.
-5. Выберите папку `sailorm-battlepass`.
+5. Выберите папку скачанного репозитория `Remanga-Battlepass`.
 6. Откройте `https://remanga.org/user/battlepass/tasks`.
 
 ## Структура
 
 ```text
-sailorm-battlepass/
-├── images/
-├── manifest.json
-├── background.js
-├── batch-executor.js
-├── cache-manager.js
-├── games.js
-├── memory.page.js
-├── popup.html
-├── popup.js
-├── rate-limiter.js
-├── shared.js
-├── tasks.js
-├── ui.js
-└── README.md
+Remanga-Battlepass/
+- manifest.json
+- background.js
+- batch-executor.js
+- cache-manager.js
+- games.js
+- memory.page.js
+- popup.html
+- popup.js
+- rate-limiter.js
+- shared.js
+- tasks.js
+- ui.js
+- README.md
 ```
 
 ## Приватность
