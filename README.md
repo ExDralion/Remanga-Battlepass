@@ -36,6 +36,7 @@ GitHub-версия не содержит привязки к конкретно
 
 ```text
 Remanga-Battlepass/
+- images/
 - manifest.json
 - background.js
 - batch-executor.js
