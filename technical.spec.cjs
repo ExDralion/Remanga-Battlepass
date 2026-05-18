@@ -1066,6 +1066,9 @@ test('chapter view automations run sequentially instead of parallel batches', ()
   assert.match(source, /count_chapters_lte/);
   assert.match(source, /ordering:\s*'-count_chapters'/);
   assert.match(source, /collectReadingChapterCountCandidates\(candidateMap,\s*targetCandidateSize\)/);
+  assert.match(source, /const selectedChapterIds = new Set\(\);[\s\S]*?selectedChapterIds\.has\(chapter\.id\)/);
+  assert.match(source, /LIKE_MAX_CHAPTERS_PER_TITLE_FLOOR/);
+  assert.match(source, /selectedByTitle\.set\(chapter\.dir,\s*perTitleCount \+ 1\)/);
   assert.match(source, /batchStartMessage:\s*\([^)]*\)\s*=>\s*`Открываю новые тайтлы по одному:/);
   assert.match(source, /READING_FAST_CHUNK_SIZE\s*=\s*3/);
   assert.match(source, /READING_FAST_ITEM_DELAY_MS\s*=\s*350/);

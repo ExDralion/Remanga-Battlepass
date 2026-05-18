@@ -99,6 +99,8 @@
   const READING_FAST_ITEM_DELAY_MS = 350;
   const READING_FAST_SETTLE_ATTEMPTS = 8;
   const READING_FAST_SETTLE_DELAY_MS = 450;
+  const LIKE_MAX_CHAPTERS_PER_TITLE_FLOOR = 6;
+  const LIKE_MAX_TITLE_SHARE = 4;
   const LIKE_FAST_CHUNK_SIZE = 3;
   const LIKE_FAST_ITEM_DELAY_MS = 350;
   const LIKE_FAST_SETTLE_ATTEMPTS = 8;
@@ -1357,6 +1359,7 @@
     }
 
     const selectedChapters = [];
+    const selectedChapterIds = new Set();
     const ordered = [...candidateMap.values()].sort((left, right) => {
       if (right.seedScore !== left.seedScore) return right.seedScore - left.seedScore;
       return right.avg_rating - left.avg_rating;
@@ -1367,7 +1370,9 @@
 
       const freeChapters = await getFreeChapters(candidate.dir, Math.max(remaining, 12));
       for (const chapter of freeChapters) {
+        if (!chapter?.id || selectedChapterIds.has(chapter.id)) continue;
         if (viewedChapters.has(chapter.id)) continue;
+        selectedChapterIds.add(chapter.id);
         selectedChapters.push({
           dir: candidate.dir,
           rus_name: candidate.rus_name,
@@ -1397,8 +1402,10 @@
 
     const selectedChapters = [];
     const selectedChapterIds = new Set();
+    const selectedByTitle = new Map();
     const probedDirs = new Set();
     const limit = Math.max(remaining * 2, 20);
+    const maxChaptersPerTitle = Math.max(LIKE_MAX_CHAPTERS_PER_TITLE_FLOOR, Math.ceil(remaining / LIKE_MAX_TITLE_SHARE));
     const candidateMap = createCandidateMap();
 
     const probeCandidate = async candidate => {
@@ -1427,7 +1434,10 @@
           for (const chapter of result.value || []) {
             if (selectedChapters.length >= limit) break;
             if (!chapter?.chapterId || selectedChapterIds.has(chapter.chapterId)) continue;
+            const perTitleCount = Number(selectedByTitle.get(chapter.dir) || 0);
+            if (perTitleCount >= maxChaptersPerTitle) continue;
             selectedChapterIds.add(chapter.chapterId);
+            selectedByTitle.set(chapter.dir, perTitleCount + 1);
             selectedChapters.push(chapter);
           }
         }
