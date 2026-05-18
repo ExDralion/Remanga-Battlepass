@@ -31,12 +31,7 @@
                                                 "*://*.remanga.org/*"
                                             ],
                                 "js":  [
-                                           "shared.js",
-                                           "cache-manager.js",
-                                           "rate-limiter.js",
-                                           "batch-executor.js",
-                                           "tasks.js",
-                                           "ui.js"
+                                           "content.js"
                                        ],
                                 "run_at":  "document_idle"
                             }

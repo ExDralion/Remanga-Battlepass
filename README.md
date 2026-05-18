@@ -1,46 +1,30 @@
 # SailorM Battlepass
 
-Chrome/Edge extension for automating ReManga Battlepass tasks.
+Compact build of the ReManga battlepass automation extension.
 
-This GitHub build does not include account-bound data, cookies, tokens, browser profiles, or local task history.
+## What it does
 
-## Features
-
-- Battlepass overview with account, EXP, levels, rewards, and badge status.
-- Tasks page with grouped daily, weekly, and permanent task sections.
-- Direct API automation for supported Battlepass tasks.
-- Rewards page with claiming, paid reward filtering, and claimed/pending grouping.
-- Settings page for automation preferences and title blacklist management.
-- Local storage only through `chrome.storage`.
+- Reads battlepass tasks through ReManga API.
+- Automates supported reading, catalog, likes, profile, minigame, card and reward tasks.
+- Shows an in-page menu with Overview, Tasks, Rewards and Settings.
+- Claims available battlepass rewards using the latest available level when possible.
 
 ## Install
 
-1. Open `chrome://extensions/` or `edge://extensions/`.
-2. Enable developer mode.
+1. Open `edge://extensions` or `chrome://extensions`.
+2. Enable Developer mode.
 3. Click `Load unpacked`.
-4. Select this extension folder.
+4. Select this folder.
 5. Open `https://remanga.org/user/battlepass/tasks`.
 
-## Structure
+## Build Layout
 
-```text
-Remanga-Battlepass/
-├── images/
-├── manifest.json
-├── background.js
-├── batch-executor.js
-├── cache-manager.js
-├── popup.html
-├── popup.js
-├── rate-limiter.js
-├── shared.js
-├── tasks.js
-├── ui.js
-└── README.md
-```
+This repository stores the compact installable version:
 
-## Notes
+- `content.js` contains the bundled content scripts.
+- `popup.js` contains the bundled popup scripts.
+- `background.js` is the MV3 service worker.
+- `manifest.json` points to the compact bundles.
+- `images/` contains extension icons.
 
-The old page solvers for `/user/battlepass/games/quiz`, `/memory`, and `/difference` were removed. Supported mini-game tasks are completed through the current direct Battlepass API runner instead of opening or solving those pages.
-
-Automation may violate site rules. Use at your own risk.
+Development tests and split source files are intentionally not included here.
