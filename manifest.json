@@ -1,56 +1,44 @@
-{
-  "manifest_version": 3,
-  "name": "SailorM Battlepass",
-  "description": "Автоматизация задач и мини-игр battlepass на ReManga.",
-  "version": "1.0.0",
-  "icons": {
-    "16": "images/icon_16.png",
-    "32": "images/icon_32.png",
-    "48": "images/icon_48.png",
-    "128": "images/icon_128.png"
-  },
-  "permissions": [
-    "storage",
-    "tabs",
-    "scripting"
-  ],
-  "host_permissions": [
-    "*://remanga.org/*",
-    "*://*.remanga.org/*"
-  ],
-  "action": {
-    "default_popup": "popup.html"
-  },
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "*://remanga.org/*",
-        "*://*.remanga.org/*"
-      ],
-      "js": [
-        "shared.js",
-        "cache-manager.js",
-        "rate-limiter.js",
-        "batch-executor.js",
-        "tasks.js",
-        "games.js",
-        "ui.js"
-      ],
-      "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "memory.page.js"
-      ],
-      "matches": [
-        "*://remanga.org/*",
-        "*://*.remanga.org/*"
-      ]
-    }
-  ]
+﻿{
+    "manifest_version":  3,
+    "name":  "SailorM Battlepass",
+    "description":  "Автоматизация задач battlepass на ReManga.",
+    "version":  "1.0.0",
+    "icons":  {
+                  "16":  "images/icon_16.png",
+                  "32":  "images/icon_32.png",
+                  "48":  "images/icon_48.png",
+                  "128":  "images/icon_128.png"
+              },
+    "permissions":  [
+                        "storage",
+                        "tabs",
+                        "scripting"
+                    ],
+    "host_permissions":  [
+                             "*://remanga.org/*",
+                             "*://*.remanga.org/*"
+                         ],
+    "action":  {
+                   "default_popup":  "popup.html"
+               },
+    "background":  {
+                       "service_worker":  "background.js"
+                   },
+    "content_scripts":  [
+                            {
+                                "matches":  [
+                                                "*://remanga.org/*",
+                                                "*://*.remanga.org/*"
+                                            ],
+                                "js":  [
+                                           "shared.js",
+                                           "cache-manager.js",
+                                           "rate-limiter.js",
+                                           "batch-executor.js",
+                                           "tasks.js",
+                                           "ui.js"
+                                       ],
+                                "run_at":  "document_idle"
+                            }
+                        ]
 }

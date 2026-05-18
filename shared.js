@@ -6,7 +6,6 @@
   const VERSION = '1.0.0';
   const MAX_DIAGNOSTIC_ENTRIES = 120;
   const DEFAULT_SETTINGS = {
-    quizAutoPlay: false,
     rewardsHidePaid: false,
     inlineTaskButtonsEnabled: true,
     inlineTaskButtonText: 'Выполнить',
@@ -36,13 +35,6 @@
     puzzle: 46,
     quiz: 49,
     difference: 63
-  };
-
-  const GAME_ROUTES = {
-    memory: '/user/battlepass/games/memory',
-    puzzle: '/user/battlepass/games/puzzle',
-    quiz: '/user/battlepass/games/quiz',
-    difference: '/user/battlepass/games/difference'
   };
 
   const EVENT_TO_GAME = {
@@ -328,7 +320,6 @@
     VERSION,
     DEFAULT_SETTINGS,
     GAME_IDS,
-    GAME_ROUTES,
     EVENT_TO_GAME,
     TASK_SECTIONS,
     sleep,

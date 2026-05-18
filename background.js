@@ -1,4 +1,4 @@
-const VISIT_TIMEOUT_MS = 25000;
+﻿const VISIT_TIMEOUT_MS = 25000;
 const ACTION_TIMEOUT_MS = 60000;
 const DEFAULT_STAY_MS = 5000;
 const BATTLEPASS_STATE_CACHE_TTL_MS = 10000;
@@ -17,11 +17,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message?.type === 'smbp_visit_urls') {
     respondToMessage(sendResponse, 'smbp_visit_urls', message, sender, () => visitUrls(message.urls || [], message.delayMs || DEFAULT_STAY_MS, sender?.tab?.windowId));
-    return true;
-  }
-
-  if (message?.type === 'smbp_run_memory_task') {
-    respondToMessage(sendResponse, 'smbp_run_memory_task', message, sender, () => runMemoryTask(message, sender?.tab?.windowId));
     return true;
   }
 
@@ -97,57 +92,6 @@ async function visitOne(url, stayMs, windowId) {
   return withTab(url, windowId, async () => {
     await delay(Math.max(Number(stayMs || 0), 0));
     return { visited: true, url };
-  });
-}
-
-async function runMemoryTask(message, windowId) {
-  const url = message?.url || 'https://remanga.org/user/battlepass/games/memory';
-  const taskId = Number(message?.taskId || 0) || null;
-  const goal = Number(message?.goal || 1) || 1;
-
-  return withTab(url, windowId, async tabId => {
-    await waitForFunction(tabId, () => {
-      return Boolean(window.SMBP?.games?.MemoryGame?.start);
-    }, 20000, 'Не загрузился solver memory.');
-
-    await runScript(tabId, () => {
-      const ui = {
-        status() {},
-        setPrimary() {},
-        setSecondary() {}
-      };
-      window.SMBP.games.MemoryGame.start(ui);
-      return true;
-    });
-
-    const result = await waitForFunction(tabId, (targetTaskId, targetGoal) => {
-      const groups = ['daily', 'dailyRefresh', 'weekly', 'weeklyRefresh', 'monthly', 'monthlyRefresh', 'permanent', 'special'];
-      const findTask = data => groups
-        .flatMap(key => Array.isArray(data?.content?.[key]) ? data.content[key] : [])
-        .find(task => Number(task?.id || 0) === Number(targetTaskId));
-
-      return fetch('/api/battlepass/tasks/', { credentials: 'include' })
-        .then(response => response.json())
-        .then(data => {
-          const task = findTask(data);
-          if (!task) return null;
-          if (Number(task.progress || 0) >= Math.max(Number(targetGoal || 0), Number(task.goal || 0), 1)) {
-            return {
-              id: task.id,
-              progress: Number(task.progress || 0),
-              goal: Number(task.goal || 0),
-              claimed: Boolean(task.claimed)
-            };
-          }
-          return null;
-        })
-        .catch(() => null);
-    }, ACTION_TIMEOUT_MS, 'Memory РЅРµ РґР°Р» РїСЂРѕРіСЂРµСЃСЃ РІ battlepass.', [taskId, goal]);
-
-    return {
-      completed: true,
-      task: result
-    };
   });
 }
 
@@ -382,7 +326,7 @@ function inventorySwapScript(options = {}) {
   const normalize = value => String(value || '')
     .toLowerCase()
     .replace(/\u0451/g, '\u0435')
-    .replace(/[«»"'`]/g, '')
+    .replace(/[В«В»"'`]/g, '')
     .replace(/[.,!?():;]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -793,7 +737,7 @@ function inventoryRestoreScript(options = {}) {
   const normalize = value => String(value || '')
     .toLowerCase()
     .replace(/\u0451/g, '\u0435')
-    .replace(/[«»"'`]/g, '')
+    .replace(/[В«В»"'`]/g, '')
     .replace(/[.,!?():;]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -1017,9 +961,9 @@ async function runTitleRatingTask(message, windowId) {
     await waitForFunction(tabId, () => {
       return [...document.querySelectorAll('button')].some(button => {
         const text = (button.innerText || button.textContent || '').trim();
-        return text.includes('РћС†РµРЅРёС‚СЊ') || text.includes('РћС†РµРЅРєР°:');
+        return text.includes('Оценить') || text.includes('Оценка:');
       });
-    }, 25000, 'РљРЅРѕРїРєР° РѕС†РµРЅРєРё С‚Р°Р№С‚Р»Р° РЅРµ РїРѕСЏРІРёР»Р°СЃСЊ.');
+    }, 25000, 'Кнопка оценки тайтла не появилась.');
 
     const result = await runScript(tabId, async targetRating => {
       const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -1031,7 +975,7 @@ async function runTitleRatingTask(message, windowId) {
         return true;
       };
 
-      const opened = clickButton(text => text.includes('РћС†РµРЅРёС‚СЊ') || text.includes('РћС†РµРЅРєР°:'));
+      const opened = clickButton(text => text.includes('Оценить') || text.includes('Оценка:'));
       if (!opened) {
         throw new Error('Не удалось открыть окно оценки.');
       }
@@ -1046,7 +990,7 @@ async function runTitleRatingTask(message, windowId) {
       await sleep(1500);
       const ratingApplied = [...document.querySelectorAll('button')].some(button => {
         const text = (button.innerText || button.textContent || '').trim();
-        return text.includes(`РћС†РµРЅРєР°: ${targetRating}`);
+        return text.includes(`Оценка: ${targetRating}`);
       });
 
       return {
@@ -1074,7 +1018,7 @@ async function runCommentVoteTask(message, windowId) {
     const result = await withTab(url, windowId, async tabId => {
       await waitForFunction(tabId, () => {
         return document.querySelectorAll('button[data-sentry-component="LikeButton"]').length > 0;
-      }, 25000, 'РљРЅРѕРїРєРё Р»Р°Р№РєРѕРІ РєРѕРјРјРµРЅС‚Р°СЂРёРµРІ РЅРµ РїРѕСЏРІРёР»РёСЃСЊ.');
+      }, 25000, 'Кнопки лайков комментариев не появились.');
 
       const clickResult = await runScript(tabId, () => {
         const normalize = value => String(value || '')
@@ -1168,7 +1112,7 @@ async function runGuildJoinTask(message, windowId) {
       const normalize = value => String(value || '')
         .toLowerCase()
         .replace(/\u0451/g, '\u0435')
-        .replace(/[«»"'`]/g, '')
+        .replace(/[В«В»"'`]/g, '')
         .replace(/[.,!?():;]+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
@@ -1659,7 +1603,7 @@ async function waitForInventoryReady(tabId) {
   await waitForFunction(tabId, () => {
     const text = document.body?.innerText || '';
     return location.pathname.includes('/inventory') && text.length > 0;
-  }, 25000, 'Инвентарь не загрузился.');
+  }, 25000, 'Рнвентарь не загрузился.');
 }
 
 function waitForTabComplete(tabId, timeoutMs) {

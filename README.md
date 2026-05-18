@@ -1,69 +1,46 @@
 # SailorM Battlepass
 
-Chrome/Edge расширение для автоматизации задач Battlepass на ReManga.
+Chrome/Edge extension for automating ReManga Battlepass tasks.
 
-GitHub-версия не содержит привязки к конкретному аккаунту. Расширение работает с текущей авторизованной сессией ReManga в браузере и хранит настройки только локально в `chrome.storage`.
+This GitHub build does not include account-bound data, cookies, tokens, browser profiles, or local task history.
 
-## Возможности
+## Features
 
-- Показывает задачи Battlepass, прогресс и доступные награды.
-- Выполняет безопасные API-задачи без лишних переходов по вкладкам.
-- Поддерживает очередь и запуск доступных задач.
-- Автоматизирует мини-игры Battlepass.
-- Подбирает тайтлы и главы для заданий чтения.
-- Работает с заданиями по жанрам и категориям через каталог ReManga.
-- Умеет собирать доступные награды Battlepass.
-- Поддерживает blacklist тайтлов.
-- Показывает overview аккаунта и прогресса Battlepass.
+- Battlepass overview with account, EXP, levels, rewards, and badge status.
+- Tasks page with grouped daily, weekly, and permanent task sections.
+- Direct API automation for supported Battlepass tasks.
+- Rewards page with claiming, paid reward filtering, and claimed/pending grouping.
+- Settings page for automation preferences and title blacklist management.
+- Local storage only through `chrome.storage`.
 
-## Разделы
+## Install
 
-- `Overview` - информация об аккаунте, опыте, уровнях и наградах Battlepass.
-- `Tasks` - список задач, прогресс, очередь и запуск автоматизации.
-- `Rewards` - сбор доступных наград.
-- `Settings` - настройки расширения и blacklist.
+1. Open `chrome://extensions/` or `edge://extensions/`.
+2. Enable developer mode.
+3. Click `Load unpacked`.
+4. Select this extension folder.
+5. Open `https://remanga.org/user/battlepass/tasks`.
 
-## Установка
-
-1. Скачайте или клонируйте репозиторий.
-2. Откройте `chrome://extensions/` или `edge://extensions/`.
-3. Включите режим разработчика.
-4. Нажмите `Load unpacked` / `Загрузить распакованное расширение`.
-5. Выберите папку скачанного репозитория `Remanga-Battlepass`.
-6. Откройте `https://remanga.org/user/battlepass/tasks`.
-
-## Структура
+## Structure
 
 ```text
 Remanga-Battlepass/
-- images/
-- manifest.json
-- background.js
-- batch-executor.js
-- cache-manager.js
-- games.js
-- memory.page.js
-- popup.html
-- popup.js
-- rate-limiter.js
-- shared.js
-- tasks.js
-- ui.js
-- README.md
+├── images/
+├── manifest.json
+├── background.js
+├── batch-executor.js
+├── cache-manager.js
+├── popup.html
+├── popup.js
+├── rate-limiter.js
+├── shared.js
+├── tasks.js
+├── ui.js
+└── README.md
 ```
 
-## Приватность
+## Notes
 
-В эту версию не включаются:
+The old page solvers for `/user/battlepass/games/quiz`, `/memory`, and `/difference` were removed. Supported mini-game tasks are completed through the current direct Battlepass API runner instead of opening or solving those pages.
 
-- ID конкретных пользователей.
-- Токены, cookies или данные авторизации.
-- Локальные профили браузера.
-- История выполнения задач и настройки из `chrome.storage`.
-- Тестовые артефакты и локальные файлы разработки.
-
-Расширение использует авторизованную сессию текущего браузера и отправляет запросы только к `remanga.org` и `api.remanga.org`.
-
-## Предупреждение
-
-Автоматизация действий на сайте может нарушать правила сервиса. Используйте расширение на свой риск.
+Automation may violate site rules. Use at your own risk.

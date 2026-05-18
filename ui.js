@@ -1,6 +1,6 @@
 ﻿(() => {
   const smb = window.SMBP;
-  if (!smb?.tasks || !smb?.games) return;
+  if (!smb?.tasks) return;
   let currentRouteKey = '';
   let activeShellView = '';
   let initScheduled = false;
@@ -84,19 +84,16 @@
     deckPickCard: '\u0417\u0430\u0431\u0440\u0430\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u0443\u044e',
     deckCancel: '\u041e\u0442\u043c\u0435\u043d\u0430',
     deckChoiceCancelled: '\u0412\u044b\u0431\u043e\u0440 \u043a\u0430\u0440\u0442\u044b \u043e\u0442\u043c\u0435\u043d\u0451\u043d.',
-    memoryIdle: 'Memory \u0436\u0434\u0451\u0442 \u0437\u0430\u043f\u0443\u0441\u043a\u0430.',
     cards: '\u041a\u0430\u0440\u0442\u044b',
     solved: '\u0420\u0435\u0448\u0435\u043d\u043e',
     solve: '\u0420\u0435\u0448\u0438\u0442\u044c',
     stop: '\u0421\u0442\u043e\u043f',
-    quizIdle: 'Quiz \u0436\u0434\u0451\u0442 \u0437\u0430\u043f\u0443\u0441\u043a\u0430.',
     mode: '\u0420\u0435\u0436\u0438\u043c',
     answers: '\u041e\u0442\u0432\u0435\u0442\u043e\u0432',
     autoPlay: '\u0410\u0432\u0442\u043e-\u0438\u0433\u0440\u0430',
     start: '\u0421\u0442\u0430\u0440\u0442',
     autoPlayOn: '\u0410\u0432\u0442\u043e-\u0438\u0433\u0440\u0430 \u0432\u043a\u043b\u044e\u0447\u0435\u043d\u0430.',
     autoPlayOff: '\u0410\u0432\u0442\u043e-\u0438\u0433\u0440\u0430 \u0432\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u0430.',
-    differenceIdle: 'Difference \u0436\u0434\u0451\u0442 \u0437\u0430\u043f\u0443\u0441\u043a\u0430.',
     points: '\u0422\u043e\u0447\u0435\u043a',
     found: '\u041d\u0430\u0439\u0434\u0435\u043d\u043e',
     scan: '\u0421\u043a\u0430\u043d',
@@ -205,7 +202,7 @@
   const isOverviewPage = () => isTasksPage() && location.hash === OVERVIEW_HASH;
   const isUserSettingsPage = () => location.pathname === SETTINGS_ROUTE;
   const isSmbpSettingsView = () => isUserSettingsPage() && location.hash === SETTINGS_HASH;
-  const isShellSettingsView = () => location.hash === SHELL_SETTINGS_HASH && (isTasksPage() || isRewardsPage() || !!smb.games.getCurrentGame() || isUserSettingsPage());
+  const isShellSettingsView = () => location.hash === SHELL_SETTINGS_HASH && (isTasksPage() || isRewardsPage() || isUserSettingsPage());
 
   function injectStyles() {
     if (document.getElementById('smbp-style')) return;
@@ -249,6 +246,7 @@
         box-shadow: 0 16px 40px rgba(0,0,0,.6);
         color: #d8dae8;
         font: 13px/1.4 "Inter", "Segoe UI", system-ui, sans-serif;
+        overscroll-behavior: contain;
       }
 
       #smbp-panel.smbp-hidden { display: none; }
@@ -350,6 +348,7 @@
         flex: 1;
         min-height: 0;
         overflow: auto;
+        overscroll-behavior: contain;
         padding: 14px 10px 12px;
       }
       .smbp-nav-group {
@@ -465,6 +464,7 @@
         min-width: 0;
         min-height: 0;
         overflow: auto;
+        overscroll-behavior: contain;
         scrollbar-gutter: stable;
         padding: 22px 24px 24px;
       }
@@ -1670,6 +1670,7 @@
         align-items: center;
         gap: 8px;
         min-height: 74px;
+        cursor: pointer;
         background:
           radial-gradient(circle at 96% 0%, rgba(255,214,110,.1), transparent 30%),
           linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
@@ -1682,6 +1683,40 @@
       }
       .smbp-body[data-page="tasks"] .smbp-item-summary .smbp-summary-meta {
         grid-column: 1 / -1;
+      }
+      .smbp-body[data-page="tasks"] .smbp-section-accordion {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .smbp-body[data-page="tasks"] .smbp-section-accordion .smbp-item-summary {
+        margin: 0;
+      }
+      .smbp-body[data-page="tasks"] .smbp-section-accordion:not(.smbp-section-accordion--open) .smbp-section-content {
+        display: none;
+      }
+      .smbp-body[data-page="tasks"] .smbp-section-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-left: 14px;
+        border-left: 1px solid rgba(121,190,255,.16);
+      }
+      .smbp-body[data-page="tasks"] .smbp-section-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        margin-left: 8px;
+        color: #aab4c6;
+        font-size: 13px;
+        transform: rotate(0deg);
+        transition: transform .16s ease;
+      }
+      .smbp-body[data-page="tasks"] .smbp-section-accordion--open .smbp-section-chevron {
+        transform: rotate(90deg);
       }
       .smbp-body[data-page="tasks"] .smbp-item-head {
         margin-bottom: 7px;
@@ -2319,10 +2354,6 @@
     if (isOverviewPage()) return 'overview';
     if (isTasksPage()) return 'tasks';
     if (isRewardsPage()) return 'rewards';
-    const currentGame = smb.games.getCurrentGame();
-    if (currentGame === 'memory') return 'memory';
-    if (currentGame === 'quiz') return 'quiz';
-    if (currentGame === 'difference') return 'difference';
     return '';
   }
 
@@ -2457,6 +2488,50 @@
       });
     };
 
+    const installShellScrollIsolation = targetPanel => {
+      if (!targetPanel || targetPanel.dataset.scrollIsolationInstalled === '1') return;
+      targetPanel.dataset.scrollIsolationInstalled = '1';
+
+      const findScrollableAncestor = startNode => {
+        let node = startNode?.nodeType === Node.ELEMENT_NODE ? startNode : startNode?.parentElement;
+        while (node && node !== targetPanel) {
+          const style = window.getComputedStyle(node);
+          const canScrollY = /(auto|scroll|overlay)/.test(style.overflowY)
+            && node.scrollHeight > node.clientHeight + 1;
+          if (canScrollY) return node;
+          node = node.parentElement;
+        }
+
+        const panelStyle = window.getComputedStyle(targetPanel);
+        return /(auto|scroll|overlay)/.test(panelStyle.overflowY)
+          && targetPanel.scrollHeight > targetPanel.clientHeight + 1
+          ? targetPanel
+          : null;
+      };
+
+      const onWheel = event => {
+        if (targetPanel.classList.contains('smbp-hidden')) return;
+        if (!targetPanel.contains(event.target)) return;
+
+        const scroller = findScrollableAncestor(event.target);
+        event.stopPropagation();
+
+        if (!scroller) {
+          event.preventDefault();
+          return;
+        }
+
+        const deltaY = event.deltaY || 0;
+        const atTop = scroller.scrollTop <= 0;
+        const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
+        if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
+          event.preventDefault();
+        }
+      };
+
+      targetPanel.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    };
+
     let fab = document.getElementById('smbp-fab');
     let panel = document.getElementById('smbp-panel');
     if (fab && panel) {
@@ -2465,6 +2540,7 @@
       panel.querySelector('[data-role="page-subtitle"]').textContent = getShellViewSubtitle(getActiveShellView());
       syncShellNavigation(panel);
       installShellDragging(panel);
+      installShellScrollIsolation(panel);
       return { fab, panel };
     }
 
@@ -2514,6 +2590,7 @@
     });
     syncShellNavigation(panel);
     installShellDragging(panel);
+    installShellScrollIsolation(panel);
     document.documentElement.appendChild(fab);
     document.documentElement.appendChild(panel);
     return { fab, panel };
@@ -3083,9 +3160,45 @@
     node.innerHTML = `
       <div class="smbp-item-head">
         <strong>${escapeHtml(label)}</strong>
-        <span class="smbp-progress">${done}/${total}</span>
+        <span class="smbp-progress">${done}/${total}<span class="smbp-section-chevron">›</span></span>
       </div>
     `;
+  }
+
+  function createSectionAccordion(key, item, openSectionKeys) {
+    const root = document.createElement('div');
+    root.className = 'smbp-section-accordion';
+    root.dataset.sectionRoot = key;
+    if (openSectionKeys.has(key)) root.classList.add('smbp-section-accordion--open');
+
+    const header = document.createElement('div');
+    header.className = 'smbp-item smbp-item-summary';
+    header.dataset.section = key;
+    header.setAttribute('role', 'button');
+    header.tabIndex = 0;
+    renderSummaryNodeContent(header, item);
+
+    const content = document.createElement('div');
+    content.className = 'smbp-section-content';
+    content.dataset.sectionContent = key;
+
+    const toggle = () => {
+      const open = !root.classList.contains('smbp-section-accordion--open');
+      root.classList.toggle('smbp-section-accordion--open', open);
+      if (open) openSectionKeys.add(key);
+      else openSectionKeys.delete(key);
+    };
+
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      toggle();
+    });
+
+    root.appendChild(header);
+    root.appendChild(content);
+    return { root, content };
   }
 
   function getRunnableAutomationTasks(state) {
@@ -4020,6 +4133,7 @@
 
     const list = document.createElement('div');
     list.className = 'smbp-list';
+    const openSectionKeys = new Set();
     body.appendChild(buttons);
     body.appendChild(dailyExpNode);
     body.appendChild(list);
@@ -4073,7 +4187,7 @@
       for (const node of list.querySelectorAll('.smbp-item[data-task-id]')) {
         const taskId = Number(node.dataset.taskId || 0);
         const nextTask = taskMap.get(taskId);
-        if (!nextTask || nextTask.claimed || smb.isTaskDone(nextTask)) {
+        if (!nextTask || nextTask.claimed) {
           node.remove();
           continue;
         }
@@ -4096,7 +4210,7 @@
 
     async function settleTaskNode(node, nextTask) {
       if (!node?.isConnected) return;
-      if (smb.isTaskDone(nextTask) || nextTask?.claimed) {
+      if (nextTask?.claimed) {
         node.remove();
         return;
       }
@@ -4152,6 +4266,172 @@
       }
     }
 
+    function createTaskCard(task) {
+      const isReadyTask = smb.isTaskReady(task) && !task.claimed;
+      const isManualTask = smb.tasks.isIgnoredManualTask(task);
+      const route = smb.tasks.getTaskRoute(task);
+      const isRouteGameTask = route &&
+        !smb.tasks.isDirectGameTask(task) &&
+        !smb.tasks.isAutonomousMemoryTask(task) &&
+        !task.claimed;
+      const isRunnableTask = (isInlineRunnableTask(task) || smb.tasks.isGuildJoinTask(task)) &&
+        !task.claimed &&
+        !isReadyTask &&
+        !isManualTask;
+
+      if (isManualTask) {
+        const reason = smb.tasks.getManualTaskReason?.(task) || t.manualOnly;
+        return createTaskNode(task, {
+          note: reason,
+          state: 'manual'
+        });
+      }
+
+      if (isReadyTask) {
+        const node = createTaskNode(task, {
+          actionLabel: t.claimReward,
+          state: task.id === runningTaskId ? 'running' : 'ready'
+        });
+
+        node.querySelector('[data-role="task-action"]')?.addEventListener('click', async () => {
+          try {
+            runningTaskId = task.id;
+            errorTaskId = null;
+            setTaskState(node, 'running');
+            await runExclusive(task.name, async () => {
+              ui.status(`Забираю награду: ${task.name}`, 'running');
+              ui.pushLog(`Забираю награду: ${task.name}`, 'running');
+              await smb.claimTask(task.id);
+            });
+            await recordDailyTaskExp(task);
+            await updateDailyExpNode();
+            runningTaskId = null;
+            node.remove();
+            const freshState = await smb.tasks.loadState();
+            updateOverview(freshState, { keepStatus: true });
+            updateSummaryNodes(freshState);
+            syncTaskNodes(freshState);
+            ui.status(`Награда забрана: ${task.name}`, 'done');
+            ui.pushLog(`Награда забрана: ${task.name}`, 'done');
+          } catch (error) {
+            runningTaskId = null;
+            errorTaskId = task.id;
+            setTaskState(node, 'error');
+            ui.status(t.taskFailed(error.message || error), 'error');
+            ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
+          }
+        });
+
+        return node;
+      }
+
+      if (isRouteGameTask) {
+        return createTaskNode(task, {
+          actionLabel: t.openGame,
+          state: task.id === runningTaskId ? 'running' : 'idle',
+          onAction: () => {
+            location.href = route;
+          }
+        });
+      }
+
+      if (isRunnableTask) {
+        const node = createTaskNode(task, {
+          actionLabel: getTaskActionLabel(task),
+          previewLabel: t.previewPlan,
+          onPreview: async () => {
+            if (busy) return;
+            try {
+              ui.status(`Собираю dry-run: ${task.name}`, 'running');
+              const plan = await smb.tasks.buildTaskDryRunPlan(task);
+              pushDryRunPlan(ui, plan);
+              ui.status(t.dryRunExpected(plan.expectedProgress || smb.formatTaskProgress(task)), 'done');
+            } catch (error) {
+              ui.status(t.taskFailed(error.message || error), 'error');
+              ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
+            }
+          },
+          state: task.id === errorTaskId
+            ? 'error'
+            : task.id === runningTaskId
+              ? 'running'
+              : 'idle'
+        });
+
+        node.querySelector('[data-role="task-action"]')?.addEventListener('click', async () => {
+          try {
+            runningTaskId = task.id;
+            errorTaskId = null;
+            setTaskState(node, 'running');
+            const result = await runExclusive(task.name, async () => {
+              const report = message => {
+                ui.status(message, 'running');
+                ui.pushLog(message, 'running');
+                const progress = extractProgressNumbers(message);
+                if (progress) {
+                  const progressNode = node.querySelector('.smbp-progress');
+                  if (progressNode) {
+                    progressNode.textContent = `${progress.progress} / ${progress.goal}`;
+                  }
+                  refreshTaskProgressInBackground();
+                }
+              };
+              return smb.tasks.isGuildJoinTask(task)
+                ? await smb.tasks.runGuildJoinTask(task, report)
+                : await runTaskAutomation(task, report);
+            });
+
+            if (!result) return;
+
+            await finalizeTaskResult(task, result, message => {
+              ui.status(message, 'running');
+              ui.pushLog(message, 'running');
+            });
+            if (result?.claimed) {
+              await recordDailyTaskExp(result.before || task);
+              await updateDailyExpNode();
+            }
+
+            const resultTone = smb.isTaskDone(result.after) || result.claimed ? 'done' : 'idle';
+            const loadedMessage = t.loaded(task.name, result.after.progress, result.after.goal);
+            ui.status(loadedMessage, resultTone);
+            ui.pushLog(loadedMessage, resultTone);
+            if (smb.tasks.isLikeTask(task) && Array.isArray(result.relatedTasks) && result.relatedTasks.length) {
+              const relatedSummary = formatRelatedTaskSummary(result.relatedTasks);
+              if (relatedSummary) {
+                ui.pushLog(`${t.relatedLikeTasks}: ${relatedSummary}`, 'idle');
+              }
+            }
+            smb.toast(t.progressToast(task.name, result.after.progress, result.after.goal));
+            runningTaskId = null;
+            await settleTaskNode(node, result.after || task);
+            const freshState = await smb.tasks.loadState();
+            updateOverview(freshState, { keepStatus: true });
+            updateSummaryNodes(freshState);
+            syncTaskNodes(freshState);
+          } catch (error) {
+            runningTaskId = null;
+            errorTaskId = task.id;
+            setTaskState(node, 'error');
+            ui.status(t.taskFailed(error.message || error), 'error');
+            ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
+          }
+        });
+
+        return node;
+      }
+
+      return createTaskNode(task, {
+        state: task.id === runningTaskId
+          ? 'running'
+          : task.id === errorTaskId
+            ? 'error'
+            : isReadyTask
+              ? 'ready'
+              : 'idle'
+      });
+    }
+
     async function refresh() {
       ui.status(t.loadingTasks, 'idle');
       list.innerHTML = '';
@@ -4171,181 +4451,26 @@
         const summary = smb.tasks.summarizeBySection(state.tasks);
         for (const key of Object.keys(summary)) {
           const item = summary[key];
-          const node = document.createElement('div');
-          node.className = 'smbp-item smbp-item-summary';
-          node.dataset.section = key;
-          renderSummaryNodeContent(node, item);
-          list.appendChild(node);
-        }
-
-        const gameTasks = state.automatableTasks.filter(task =>
-          smb.tasks.getTaskRoute(task) &&
-          !smb.tasks.isDirectGameTask(task) &&
-          !smb.tasks.isAutonomousMemoryTask(task) &&
-          !task.claimed
-        );
-
-        if (gameTasks.length) {
-          list.appendChild(createSectionHeader(t.gameTasks, t.gameTasksDesc));
-
-          for (const task of gameTasks) {
-            const route = smb.tasks.getTaskRoute(task);
-            const node = createTaskNode(task, {
-              actionLabel: t.openGame,
-              state: task.id === runningTaskId ? 'running' : smb.isTaskReady(task) ? 'ready' : 'idle',
-              onAction: () => {
-              location.href = route;
-              }
+          const accordion = createSectionAccordion(key, item, openSectionKeys);
+          const sectionTasks = state.tasks
+            .filter(task => String(task?.section || 'other') === key && !task.claimed)
+            .sort((left, right) => {
+              const readyDelta = Number(smb.isTaskReady(right)) - Number(smb.isTaskReady(left));
+              if (readyDelta) return readyDelta;
+              const manualDelta = Number(smb.tasks.isIgnoredManualTask(left)) - Number(smb.tasks.isIgnoredManualTask(right));
+              if (manualDelta) return manualDelta;
+              return getAutomationTaskPriority(left) - getAutomationTaskPriority(right);
             });
-            list.appendChild(node);
-          }
-        }
 
-        const catalogTasks = state.automatableTasks.filter(task => (isInlineRunnableTask(task) || smb.tasks.isGuildJoinTask(task)) && !task.claimed && !smb.isTaskReady(task));
-
-        if (catalogTasks.length) {
-          list.appendChild(createSectionHeader(t.autoSection, t.autoSectionDesc));
-        }
-
-        for (const task of catalogTasks) {
-          const node = createTaskNode(task, {
-            actionLabel: getTaskActionLabel(task),
-            previewLabel: t.previewPlan,
-            onPreview: async () => {
-              if (busy) return;
-              try {
-                ui.status(`Собираю dry-run: ${task.name}`, 'running');
-                const plan = await smb.tasks.buildTaskDryRunPlan(task);
-                pushDryRunPlan(ui, plan);
-                ui.status(t.dryRunExpected(plan.expectedProgress || smb.formatTaskProgress(task)), 'done');
-              } catch (error) {
-                ui.status(t.taskFailed(error.message || error), 'error');
-                ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
-              }
-            },
-            state: task.id === errorTaskId
-              ? 'error'
-              : task.id === runningTaskId
-                ? 'running'
-                : smb.isTaskReady(task)
-                  ? 'ready'
-                  : 'idle'
-          });
-
-          node.querySelector('[data-role="task-action"]')?.addEventListener('click', async () => {
-            try {
-              runningTaskId = task.id;
-              errorTaskId = null;
-              setTaskState(node, 'running');
-              const result = await runExclusive(task.name, async () => {
-                const report = message => {
-                  ui.status(message, 'running');
-                  ui.pushLog(message, 'running');
-                  const progress = extractProgressNumbers(message);
-                  if (progress) {
-                    const progressNode = node.querySelector('.smbp-progress');
-                    if (progressNode) {
-                      progressNode.textContent = `${progress.progress} / ${progress.goal}`;
-                    }
-                    refreshTaskProgressInBackground();
-                  }
-                };
-                return smb.tasks.isGuildJoinTask(task)
-                  ? await smb.tasks.runGuildJoinTask(task, report)
-                  : await runTaskAutomation(task, report);
-              });
-
-              if (!result) return;
-
-              await finalizeTaskResult(task, result, message => {
-                ui.status(message, 'running');
-                ui.pushLog(message, 'running');
-              });
-              if (result?.claimed) {
-                await recordDailyTaskExp(result.before || task);
-                await updateDailyExpNode();
-              }
-
-              const resultTone = smb.isTaskDone(result.after) || result.claimed ? 'done' : 'idle';
-              const loadedMessage = t.loaded(task.name, result.after.progress, result.after.goal);
-              ui.status(loadedMessage, resultTone);
-              ui.pushLog(loadedMessage, resultTone);
-              if (smb.tasks.isLikeTask(task) && Array.isArray(result.relatedTasks) && result.relatedTasks.length) {
-                const relatedSummary = formatRelatedTaskSummary(result.relatedTasks);
-                if (relatedSummary) {
-                  ui.pushLog(`${t.relatedLikeTasks}: ${relatedSummary}`, 'idle');
-                }
-              }
-              smb.toast(t.progressToast(task.name, result.after.progress, result.after.goal));
-              runningTaskId = null;
-              await settleTaskNode(node, result.after || task);
-              const freshState = await smb.tasks.loadState();
-              updateOverview(freshState, { keepStatus: true });
-            } catch (error) {
-              runningTaskId = null;
-              errorTaskId = task.id;
-              setTaskState(node, 'error');
-              ui.status(t.taskFailed(error.message || error), 'error');
-              ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
+          if (!sectionTasks.length) {
+            accordion.content.innerHTML = `<div class="smbp-item">${t.noTasks}</div>`;
+          } else {
+            for (const task of sectionTasks) {
+              accordion.content.appendChild(createTaskCard(task));
             }
-          });
-
-          list.appendChild(node);
-        }
-
-        const readyTasks = state.readyTasks.filter(task => !task.claimed);
-        if (readyTasks.length) {
-          list.appendChild(createSectionHeader(t.readyTasksSection, t.readyTasksSectionDesc));
-          for (const task of readyTasks) {
-            const node = createTaskNode(task, {
-              actionLabel: t.claimReward,
-              state: task.id === runningTaskId ? 'running' : 'ready'
-            });
-
-            node.querySelector('[data-role="task-action"]')?.addEventListener('click', async () => {
-              try {
-                runningTaskId = task.id;
-                errorTaskId = null;
-                setTaskState(node, 'running');
-                await runExclusive(task.name, async () => {
-                  ui.status(`Забираю награду: ${task.name}`, 'running');
-                  ui.pushLog(`Забираю награду: ${task.name}`, 'running');
-                  await smb.claimTask(task.id);
-                });
-                await recordDailyTaskExp(task);
-                await updateDailyExpNode();
-                runningTaskId = null;
-                node.remove();
-                const freshState = await smb.tasks.loadState();
-                updateOverview(freshState, { keepStatus: true });
-                updateSummaryNodes(freshState);
-                syncTaskNodes(freshState);
-                ui.status(`Награда забрана: ${task.name}`, 'done');
-                ui.pushLog(`Награда забрана: ${task.name}`, 'done');
-              } catch (error) {
-                runningTaskId = null;
-                errorTaskId = task.id;
-                setTaskState(node, 'error');
-                ui.status(t.taskFailed(error.message || error), 'error');
-                ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
-              }
-            });
-
-            list.appendChild(node);
           }
-        }
 
-        const manualTasks = state.tasks.filter(task => smb.tasks.isIgnoredManualTask(task) && !task.claimed);
-        if (manualTasks.length) {
-          list.appendChild(createSectionHeader(t.manualSection, t.manualSectionDesc));
-          for (const task of manualTasks) {
-            const reason = smb.tasks.getManualTaskReason?.(task) || t.manualOnly;
-            const node = createTaskNode(task, {
-              note: reason,
-              state: 'manual'
-            });
-            list.appendChild(node);
-          }
+          list.appendChild(accordion.root);
         }
       } catch (error) {
         canClaimReady = false;
@@ -4728,84 +4853,7 @@
     refresh();
   }
 
-  async function renderMemoryPage(body) {
-    const ui = createUiHelpers(body, t.memoryIdle);
-    ui.setPrimary('0', t.cards);
-    ui.setSecondary('0', t.solved);
-
-    const buttons = document.createElement('div');
-    buttons.className = 'smbp-buttons';
-    buttons.innerHTML = `
-      <button class="smbp-btn smbp-btn-primary" type="button">${t.solve}</button>
-      <button class="smbp-btn smbp-btn-danger" type="button">${t.stop}</button>
-    `;
-    body.appendChild(buttons);
-
-    buttons.children[0].addEventListener('click', () => smb.games.MemoryGame.start(ui));
-    buttons.children[1].addEventListener('click', () => smb.games.MemoryGame.stop(ui));
-  }
-
-  async function renderQuizPage(body) {
-    const settings = await smb.loadSettings();
-    const ui = createUiHelpers(body, t.quizIdle);
-    ui.setPrimary('1', t.mode);
-    ui.setSecondary('0', t.answers);
-
-    const toggle = document.createElement('label');
-    toggle.className = 'smbp-toggle';
-    toggle.innerHTML = `
-      <span>${t.autoPlay}</span>
-      <input type="checkbox" ${settings.quizAutoPlay ? 'checked' : ''}>
-    `;
-
-    const buttons = document.createElement('div');
-    buttons.className = 'smbp-buttons';
-    buttons.innerHTML = `
-      <button class="smbp-btn smbp-btn-primary" type="button">${t.start}</button>
-      <button class="smbp-btn smbp-btn-danger" type="button">${t.stop}</button>
-    `;
-
-    body.appendChild(toggle);
-    body.appendChild(buttons);
-
-    const checkbox = toggle.querySelector('input');
-    checkbox.addEventListener('change', async () => {
-      await smb.saveSettings({ quizAutoPlay: checkbox.checked });
-      ui.status(checkbox.checked ? t.autoPlayOn : t.autoPlayOff);
-    });
-
-    buttons.children[0].addEventListener('click', () => {
-      smb.games.QuizGame.start(ui, { autoPlay: checkbox.checked });
-    });
-    buttons.children[1].addEventListener('click', () => smb.games.QuizGame.stop(ui));
-  }
-
-  async function renderDifferencePage(body) {
-    const ui = createUiHelpers(body, t.differenceIdle);
-    ui.setPrimary('0', t.points);
-    ui.setSecondary('0', t.found);
-
-    const buttons = document.createElement('div');
-    buttons.className = 'smbp-buttons';
-    buttons.innerHTML = `
-      <button class="smbp-btn smbp-btn-secondary" type="button">${t.scan}</button>
-      <button class="smbp-btn smbp-btn-primary" type="button">${t.autoClick}</button>
-    `;
-
-    const stopRow = document.createElement('div');
-    stopRow.className = 'smbp-buttons';
-    stopRow.innerHTML = `<button class="smbp-btn smbp-btn-danger" type="button">${t.stop}</button>`;
-
-    body.appendChild(buttons);
-    body.appendChild(stopRow);
-
-    buttons.children[0].addEventListener('click', () => smb.games.DifferenceGame.scan(ui));
-    buttons.children[1].addEventListener('click', () => smb.games.DifferenceGame.start(ui));
-    stopRow.children[0].addEventListener('click', () => smb.games.DifferenceGame.stop(ui));
-  }
-
   async function init() {
-    const currentGame = smb.games.getCurrentGame();
     removeSettingsEntry();
     removeLegacyInlineButtons();
 
@@ -4816,7 +4864,7 @@
       }
     }
 
-    if (!isTasksPage() && !isRewardsPage() && !currentGame && !isUserSettingsPage()) {
+    if (!isTasksPage() && !isRewardsPage() && !isUserSettingsPage()) {
       currentRouteKey = '';
       activeShellView = '';
       removeShell();
@@ -4849,17 +4897,6 @@
     if (shellView === 'rewards') {
       await renderRewardsPage(body);
       return;
-    }
-    if (shellView === 'memory') {
-      await renderMemoryPage(body);
-      return;
-    }
-    if (shellView === 'quiz') {
-      await renderQuizPage(body);
-      return;
-    }
-    if (shellView === 'difference') {
-      await renderDifferencePage(body);
     }
   }
 
