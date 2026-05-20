@@ -1,4 +1,4 @@
-# SailorM Battlepass
+﻿# SailorM Battlepass
 
 Compact build of the ReManga battlepass automation extension.
 

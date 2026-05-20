@@ -9879,6 +9879,15 @@
     }
     activeRunnerLocks.add(lockKey);
     try {
+      if (smb.isTaskReady(task)) {
+        return {
+          before: task,
+          after: task,
+          claimed: false,
+          skippedReady: true
+        };
+      }
+
       return smb.tasks.isWorldTravelTask(task)
         ? await smb.tasks.runWorldTravelTask(task, progressCb)
         : smb.tasks.isChapterReadTask(task)
