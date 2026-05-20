@@ -780,6 +780,15 @@
   const LIKE_FAST_ITEM_DELAY_MS = 350;
   const LIKE_FAST_SETTLE_ATTEMPTS = 8;
   const LIKE_FAST_SETTLE_DELAY_MS = 450;
+  const EXPERT_RATING_REQUIRED_CHAPTERS = 5;
+  const EXPERT_RATING_QUERY_PAGES = 8;
+  const EXPERT_RATING_PROBE_BATCH_SIZE = 4;
+  const EXPERT_RATING_CANDIDATE_LIMIT = 80;
+  const EXPERT_RATING_CHAPTER_FILTERS = [
+    { min: 50, ordering: '-chapter_date', pages: 2, reason: 'expert:50+:fresh', score: 8 },
+    { min: 20, ordering: '-chapter_date', pages: 2, reason: 'expert:20+:fresh', score: 7 },
+    { min: 50, ordering: '-score', pages: 2, reason: 'expert:50+:score', score: 6 }
+  ];
 
   function createCache(maxSize) {
     return smb.LRUCache ? new smb.LRUCache(maxSize) : new Map();
@@ -1559,6 +1568,31 @@
     return '';
   }
 
+  function hasUserTitleRating(title) {
+    const values = [
+      title?.rated,
+      title?.is_rated,
+      title?.user_rating,
+      title?.my_rating,
+      title?.user?.rating,
+      title?.user?.rated,
+      title?.user_data?.rating,
+      title?.user_data?.rated,
+      title?.rating?.user_score,
+      title?.rating?.my_score
+    ];
+
+    return values.some(value => {
+      if (value === null || value === undefined || value === false) return false;
+      if (typeof value === 'number') return Number.isFinite(value) && value > 0;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized !== '' && normalized !== '0' && normalized !== 'null' && normalized !== 'false';
+      }
+      return Boolean(value);
+    });
+  }
+
   function isLockedChapter(chapter) {
     if (!chapter) return true;
     if (chapter?.is_bought || chapter?.is_free_today) return false;
@@ -2156,6 +2190,7 @@
   async function buildExpertRatingPlan(task) {
     const remaining = Math.max(0, Number(task?.goal || 0) - Number(task?.progress || 0));
     const viewedChapters = await getViewedChapterIds('reading');
+    const blacklistedDirs = await getBlacklistedTitleDirs('expert');
 
     if (!remaining) {
       return {
@@ -2166,7 +2201,27 @@
     }
 
     const candidateMap = createCandidateMap();
-    for (let page = 1; page <= 10; page += 1) {
+    for (const filter of EXPERT_RATING_CHAPTER_FILTERS) {
+      if (candidateMap.size >= EXPERT_RATING_CANDIDATE_LIMIT) break;
+      for (let page = 1; page <= Number(filter.pages || 1) && candidateMap.size < EXPERT_RATING_CANDIDATE_LIMIT; page += 1) {
+        const params = {
+          count: 30,
+          ordering: filter.ordering,
+          page
+        };
+        if (Number(filter.min || 0) > 0) params.count_chapters_gte = Number(filter.min);
+        if (Number(filter.max || 0) > 0) params.count_chapters_lte = Number(filter.max);
+
+        const data = await fetchCatalog(params);
+        for (const title of data?.results || []) {
+          addCandidate(candidateMap, title, filter.reason, filter.score);
+          if (candidateMap.size >= EXPERT_RATING_CANDIDATE_LIMIT) break;
+        }
+        if (!data?.next) break;
+      }
+    }
+
+    for (let page = 1; page <= EXPERT_RATING_QUERY_PAGES && candidateMap.size < EXPERT_RATING_CANDIDATE_LIMIT; page += 1) {
       const data = await fetchCatalog({
         count: 30,
         ordering: '-score',
@@ -2180,25 +2235,46 @@
       if (!data?.next) break;
     }
 
-    const ordered = [...candidateMap.values()].sort((left, right) => right.avg_rating - left.avg_rating);
-    for (const candidate of ordered) {
+    const probeCandidate = async candidate => {
+      if (!candidate?.dir || blacklistedDirs.has(candidate.dir)) return null;
       const details = await getTitleDetails(candidate.dir);
-      if (!details?.id || details?.rated !== null) continue;
-      if (Number(details?.count_chapters || 0) < 5) continue;
+      if (!details?.id || getTitleLicenseBlockReason(details) || hasUserTitleRating(details)) return null;
+      if (Number(details?.count_chapters || 0) < EXPERT_RATING_REQUIRED_CHAPTERS) return null;
 
-      const freeChapters = await getFreeChapters(candidate.dir, 12);
-      const unreadChapters = freeChapters.filter(chapter => !viewedChapters.has(chapter.id)).slice(0, 5);
-      if (unreadChapters.length < 5) continue;
+      const freeChapters = await getFreeChapters(candidate.dir, EXPERT_RATING_REQUIRED_CHAPTERS, {
+        maxAscendingPages: 3,
+        maxDescendingPages: 2
+      });
+      const unreadChapters = freeChapters
+        .filter(chapter => chapter?.id && !viewedChapters.has(chapter.id))
+        .slice(0, EXPERT_RATING_REQUIRED_CHAPTERS);
+      if (unreadChapters.length < EXPERT_RATING_REQUIRED_CHAPTERS) return null;
 
       return {
         remaining,
         selectedTitle: {
           id: details.id,
           dir: details.dir,
-          rus_name: details.main_name || details.rus_name || details.en_name || details.dir
+          rus_name: details.main_name || details.rus_name || details.en_name || details.dir,
+          avg_rating: Number(details.avg_rating || candidate.avg_rating || 0),
+          count_chapters: Number(details.count_chapters || 0)
         },
         selectedChapters: unreadChapters
       };
+    };
+
+    const ordered = [...candidateMap.values()]
+      .filter(candidate => candidate?.dir && !blacklistedDirs.has(candidate.dir))
+      .sort((left, right) => {
+        if (right.seedScore !== left.seedScore) return right.seedScore - left.seedScore;
+        return right.avg_rating - left.avg_rating;
+      });
+
+    for (let index = 0; index < ordered.length; index += EXPERT_RATING_PROBE_BATCH_SIZE) {
+      const batch = ordered.slice(index, index + EXPERT_RATING_PROBE_BATCH_SIZE);
+      const settled = await Promise.allSettled(batch.map(probeCandidate));
+      const found = settled.find(result => result.status === 'fulfilled' && result.value?.selectedTitle);
+      if (found) return found.value;
     }
 
     return {
@@ -5809,22 +5885,27 @@
 
     progressCb?.('\u041f\u043e\u0434\u0431\u0438\u0440\u0430\u044e \u0442\u0430\u0439\u0442\u043b \u0434\u043b\u044f \u043e\u0446\u0435\u043d\u043a\u0438...');
     const plan = await buildExpertRatingPlan(beforeTask);
-    if (!plan.selectedTitle || plan.selectedChapters.length < 5) {
+    if (!plan.selectedTitle || plan.selectedChapters.length < EXPERT_RATING_REQUIRED_CHAPTERS) {
       throw new Error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0439\u0442\u0438 \u0442\u0430\u0439\u0442\u043b \u0441 5 \u0431\u0435\u0441\u043f\u043b\u0430\u0442\u043d\u044b\u043c\u0438 \u0433\u043b\u0430\u0432\u0430\u043c\u0438 \u0434\u043b\u044f \u043e\u0446\u0435\u043d\u043a\u0438.');
     }
 
     const viewedChapters = [];
-    for (const chapter of plan.selectedChapters) {
-      const chapterId = chapter.chapterId || chapter.id;
-      progressCb?.(`\u0427\u0438\u0442\u0430\u044e \u0433\u043b\u0430\u0432\u0443 \u043f\u0435\u0440\u0435\u0434 \u043e\u0446\u0435\u043d\u043a\u043e\u0439: ${plan.selectedTitle.rus_name} #${chapterId}`);
-      await submitChapterView(chapterId);
-      await rememberViewedChapter(chapterId, 'reading');
-      viewedChapters.push(chapter);
-      await smb.sleep(350);
-    }
+    try {
+      for (const chapter of plan.selectedChapters) {
+        const chapterId = chapter.chapterId || chapter.id;
+        progressCb?.(`\u0427\u0438\u0442\u0430\u044e \u0433\u043b\u0430\u0432\u0443 \u043f\u0435\u0440\u0435\u0434 \u043e\u0446\u0435\u043d\u043a\u043e\u0439: ${plan.selectedTitle.rus_name} #${chapterId}`);
+        await submitChapterView(chapterId);
+        await rememberViewedChapter(chapterId, 'reading');
+        viewedChapters.push(chapter);
+        await smb.sleep(350);
+      }
 
-    progressCb?.(`\u0421\u0442\u0430\u0432\u043b\u044e \u043e\u0446\u0435\u043d\u043a\u0443 10/10: ${plan.selectedTitle.rus_name}`);
-    await submitTitleRating(plan.selectedTitle.id, 10);
+      progressCb?.(`\u0421\u0442\u0430\u0432\u043b\u044e \u043e\u0446\u0435\u043d\u043a\u0443 10/10: ${plan.selectedTitle.rus_name}`);
+      await submitTitleRating(plan.selectedTitle.id, 10);
+    } catch (error) {
+      await rememberBlacklistedTitle(plan.selectedTitle.dir, 'expert_failure', 'expert');
+      throw error;
+    }
     let finalTask = await waitForTaskUpdate(
       beforeTask.id,
       nextTask => Number(nextTask.progress || 0) > currentProgress,
@@ -5845,6 +5926,7 @@
     }
 
     if (Number(finalTask.progress || 0) <= currentProgress) {
+      await rememberBlacklistedTitle(plan.selectedTitle.dir, 'no_progress', 'expert');
       throw new Error('\u0421\u0430\u0439\u0442 \u043d\u0435 \u0437\u0430\u0441\u0447\u0438\u0442\u0430\u043b \u043e\u0446\u0435\u043d\u043a\u0443 \u0442\u0430\u0439\u0442\u043b\u0430.');
     }
 
