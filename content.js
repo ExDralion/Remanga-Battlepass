@@ -10554,6 +10554,7 @@
         }
         render();
       },
+      root: queue,
       update(taskId, state, name) {
         const key = Number(taskId || 0);
         const current = items.get(key) || { name: String(name || 'Task'), state: 'pending' };
@@ -11374,9 +11375,10 @@
     const openSectionKeys = new Set();
     body.appendChild(buttons);
     body.appendChild(dailyExpNode);
-    body.appendChild(historyNode);
     const queueUi = createQueueHelpers(body);
     body.appendChild(list);
+    list.appendChild(historyNode);
+    list.appendChild(queueUi.root);
 
     function applyButtonState(button, enabled) {
       button.disabled = !enabled;
@@ -11739,6 +11741,8 @@
     async function refresh() {
       ui.status(t.loadingTasks, 'idle');
       list.innerHTML = '';
+      list.appendChild(historyNode);
+      list.appendChild(queueUi.root);
 
       try {
         const state = await loadBattlepassState({ force: true });
