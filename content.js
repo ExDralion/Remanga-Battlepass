@@ -8409,6 +8409,8 @@
         font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
+        cursor: pointer;
+        user-select: none;
       }
       .smbp-queue-list {
         display: flex;
@@ -8626,6 +8628,8 @@
         font-size: 11px;
         font-weight: 900;
         text-transform: uppercase;
+        cursor: pointer;
+        user-select: none;
       }
       .smbp-history-list {
         display: grid;
@@ -8658,6 +8662,23 @@
         grid-column: 1 / -1;
         color: #aab4c6;
         font-size: 11px;
+      }
+      .smbp-utility-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-width: 28px;
+        color: #f4f7fc;
+      }
+      .smbp-utility-accordion:not(.smbp-utility-accordion--open) [data-utility-content] {
+        display: none;
+      }
+      .smbp-utility-accordion .smbp-section-chevron {
+        transform: rotate(0deg);
+      }
+      .smbp-utility-accordion--open .smbp-section-chevron {
+        transform: rotate(90deg);
       }
       .smbp-item small {
         display: -webkit-box;
@@ -8867,6 +8888,9 @@
         transition: transform .16s ease;
       }
       .smbp-body[data-page="tasks"] .smbp-section-accordion--open .smbp-section-chevron {
+        transform: rotate(90deg);
+      }
+      .smbp-body[data-page="tasks"] .smbp-utility-accordion--open .smbp-section-chevron {
         transform: rotate(90deg);
       }
       .smbp-body[data-page="tasks"] .smbp-item-head {
@@ -10454,6 +10478,29 @@
     return { root, content };
   }
 
+  function attachUtilityAccordion(root, key, openKeys) {
+    if (!root || !key || !openKeys) return;
+    root.classList.add('smbp-utility-accordion');
+    root.classList.toggle('smbp-utility-accordion--open', openKeys.has(key));
+
+    const header = root.querySelector('[data-role="utility-head"]');
+    if (!header) return;
+
+    const toggle = () => {
+      const open = !root.classList.contains('smbp-utility-accordion--open');
+      root.classList.toggle('smbp-utility-accordion--open', open);
+      if (open) openKeys.add(key);
+      else openKeys.delete(key);
+    };
+
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      toggle();
+    });
+  }
+
   function getRunnableAutomationTasks(state) {
     return (state?.automatableTasks || [])
       .filter(isRunnableAutomationTask)
@@ -10574,19 +10621,18 @@
     if (Array.isArray(plan.requests)) ui.pushLog(t.dryRunRequests(plan.requests.length), 'plan');
   }
 
-  function createQueueHelpers(root) {
+  function createQueueHelpers() {
     const queue = document.createElement('div');
     queue.className = 'smbp-queue';
     queue.innerHTML = `
-      <div class="smbp-queue-head">
+      <div class="smbp-queue-head" data-role="utility-head" role="button" tabindex="0">
         <span>${t.queueTitle}</span>
-        <span data-role="queue-count">0</span>
+        <span class="smbp-utility-count"><span data-role="queue-count">0</span><span class="smbp-section-chevron">›</span></span>
       </div>
-      <div class="smbp-queue-list" data-role="queue-list">
+      <div class="smbp-queue-list" data-role="queue-list" data-utility-content>
         <div class="smbp-log-empty">${t.queueEmpty}</div>
       </div>
     `;
-    root.appendChild(queue);
 
     const countNode = queue.querySelector('[data-role="queue-count"]');
     const listNode = queue.querySelector('[data-role="queue-list"]');
@@ -11434,11 +11480,11 @@
     const historyNode = document.createElement('div');
     historyNode.className = 'smbp-history';
     historyNode.innerHTML = `
-      <div class="smbp-history-head">
+      <div class="smbp-history-head" data-role="utility-head" role="button" tabindex="0">
         <span>${escapeHtml(t.executionHistoryTitle)}</span>
-        <span data-role="history-count">0</span>
+        <span class="smbp-utility-count"><span data-role="history-count">0</span><span class="smbp-section-chevron">›</span></span>
       </div>
-      <div class="smbp-history-list" data-role="history-list">
+      <div class="smbp-history-list" data-role="history-list" data-utility-content>
         <div class="smbp-log-empty">${escapeHtml(t.executionHistoryEmpty)}</div>
       </div>
     `;
@@ -11448,9 +11494,12 @@
     const list = document.createElement('div');
     list.className = 'smbp-list';
     const openSectionKeys = new Set();
+    const openUtilityKeys = new Set(['history', 'queue']);
     body.appendChild(buttons);
     body.appendChild(dailyExpNode);
-    const queueUi = createQueueHelpers(body);
+    attachUtilityAccordion(historyNode, 'history', openUtilityKeys);
+    const queueUi = createQueueHelpers();
+    attachUtilityAccordion(queueUi.root, 'queue', openUtilityKeys);
     body.appendChild(list);
     list.appendChild(historyNode);
     list.appendChild(queueUi.root);
