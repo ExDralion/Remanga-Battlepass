@@ -143,6 +143,7 @@
     }
 
     .field input[type="text"],
+    .field select,
     .field textarea {
       width: 100%;
       border: 1px solid var(--line);
@@ -154,12 +155,22 @@
       font: 13px/1.4 "Segoe UI", system-ui, sans-serif;
     }
 
+    .field select {
+      cursor: pointer;
+    }
+
+    .field select option {
+      color: #111827;
+      background: #f5f7fb;
+    }
+
     .field textarea {
       min-height: 78px;
       resize: vertical;
     }
 
     .field input[type="text"]:focus,
+    .field select:focus,
     .field textarea:focus {
       border-color: var(--line-strong);
     }
@@ -254,8 +265,11 @@
         </div>
 
         <div class="card field">
-          <label for="deck-ids">ID РїР°РєР°</label>
-          <input id="deck-ids" type="text" maxlength="80" placeholder="10">
+          <label for="deck-ids">РџР°Рє РґР»СЏ РєР°СЂС‚РѕС‡РµРє</label>
+          <select id="deck-ids">
+            <option value="10">РџР°Рє #10</option>
+          </select>
+          <div class="section-text" data-role="deck-catalog-status">Р—Р°РіСЂСѓР¶Р°СЋ РґРѕСЃС‚СѓРїРЅС‹Рµ РїР°РєРё...</div>
         </div>
 
         <div class="card field">
@@ -270,7 +284,6 @@
       </div>
 
       <div class="actions">
-        <button class="btn btn-primary" type="button" data-action="save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
         <button class="btn btn-secondary" type="button" data-action="reset">РЎР±СЂРѕСЃРёС‚СЊ</button>
       </div>
       <div class="status" data-role="status"></div>

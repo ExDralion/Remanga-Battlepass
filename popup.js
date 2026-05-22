@@ -368,6 +368,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabButtons = [...document.querySelectorAll('[data-tab]')];
   const panels = [...document.querySelectorAll('[data-panel]')];
   const statusNode = document.querySelector('[data-role="status"]');
+  const deckCatalogStatus = document.querySelector('[data-role="deck-catalog-status"]');
   const overviewDeckId = document.querySelector('[data-role="overview-deck-id"]');
 
   const controls = {
@@ -375,6 +376,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     commentText: document.getElementById('comment-text'),
     replyText: document.getElementById('reply-text')
   };
+
+  let saveTimer = null;
 
   function setActiveTab(name) {
     for (const button of tabButtons) {
@@ -391,8 +394,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function normalizeDeckIds(value) {
-    return String(value || '')
-      .split(/[,\s;]+/)
+    const source = String(value || defaults.deckTaskPreferredDeckIds);
+    const deckUrlIds = [...source.matchAll(/(?:^|\/)deck\/(\d+)(?:\/open)?(?:[/?#]|$)/gi)]
+      .map(match => match[1])
+      .filter(Boolean);
+    return [
+      ...deckUrlIds,
+      ...source.split(/[,\s;]+/)
+    ]
       .map(item => item.trim())
       .filter(Boolean)
       .filter(item => Number.isInteger(Number(item)) && Number(item) > 0)
@@ -413,8 +422,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     statusNode.className = `status${tone ? ` is-${tone}` : ''}`;
   }
 
+  function setDeckCatalogStatus(message) {
+    if (deckCatalogStatus) deckCatalogStatus.textContent = message || '';
+  }
+
+  function formatDeckOption(pack) {
+    return `${pack?.name || `РџР°Рє #${pack?.id || '?'}`} В· ${Number(pack?.count || 0)} С€С‚. В· #${pack?.id || '?'}`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function setDeckOptions(packs = [], selectedValue = defaults.deckTaskPreferredDeckIds) {
+    const selectedId = Number(normalizeDeckIds(selectedValue).split(',')[0] || 0);
+    const nextSelected = packs.some(pack => Number(pack.id) === selectedId)
+      ? selectedId
+      : Number(packs[0]?.id || selectedId || 10);
+    const optionItems = packs.length
+      ? packs
+      : [{ id: nextSelected, name: `РџР°Рє #${nextSelected}`, count: 0 }];
+
+    controls.deckIds.innerHTML = optionItems
+      .map(pack => `<option value="${escapeHtml(pack.id)}">${escapeHtml(formatDeckOption(pack))}</option>`)
+      .join('');
+    controls.deckIds.value = String(nextSelected);
+    if (overviewDeckId) overviewDeckId.textContent = controls.deckIds.value;
+    return String(nextSelected) !== String(selectedId);
+  }
+
   function applyToForm(settings) {
-    controls.deckIds.value = settings.deckTaskPreferredDeckIds;
+    setDeckOptions([], settings.deckTaskPreferredDeckIds);
     controls.commentText.value = settings.commentTaskText;
     controls.replyText.value = settings.commentReplyTaskText;
     if (overviewDeckId) overviewDeckId.textContent = settings.deckTaskPreferredDeckIds;
@@ -434,39 +477,108 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  async function saveCurrentSettings(message = 'РќР°СЃС‚СЂРѕР№РєРё СЃРѕС…СЂР°РЅРµРЅС‹ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.') {
+    const nextSettings = readForm();
+    await saveSettings(nextSettings);
+    if (overviewDeckId) overviewDeckId.textContent = nextSettings.deckTaskPreferredDeckIds;
+    setStatus(message, 'success');
+    return nextSettings;
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveCurrentSettings().catch(error => {
+        setStatus(`РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё: ${error?.message || error}`, 'error');
+      });
+    }, 450);
+  }
+
+  async function remangaApi(path) {
+    const response = await fetch(`https://remanga.org${path}`, {
+      credentials: 'include'
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  }
+
+  function unwrapPayload(payload) {
+    return payload?.content && typeof payload.content === 'object' ? payload.content : payload;
+  }
+
+  async function loadDeckPacks() {
+    const user = unwrapPayload(await remangaApi('/api/v2/users/current/'));
+    const userId = Number(user?.id || 0);
+    if (!userId) throw new Error('Р°РєРєР°СѓРЅС‚ РЅРµ РѕРїСЂРµРґРµР»РµРЅ');
+
+    const groups = new Map();
+    for (let page = 1; page <= 8; page += 1) {
+      const payload = await remangaApi(`/api/v2/inventory/decks/?is_opened=false&user_id=${encodeURIComponent(userId)}&page=${page}`);
+      const items = Array.isArray(payload?.results)
+        ? payload.results
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      for (const item of items) {
+        const deck = item?.deck || item || {};
+        const id = Number(deck?.id || item?.deck_id || 0);
+        if (!Number.isInteger(id) || id <= 0) continue;
+        const current = groups.get(id) || {
+          id,
+          name: String(deck?.name || item?.name || `РџР°Рє #${id}`).trim() || `РџР°Рє #${id}`,
+          count: 0
+        };
+        current.count += 1;
+        groups.set(id, current);
+      }
+
+      if (!payload?.next || !items.length) break;
+    }
+
+    return [...groups.values()]
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ru') || Number(a.id) - Number(b.id));
+  }
+
+  async function populateDeckSelect(selectedValue) {
+    controls.deckIds.disabled = true;
+    setDeckCatalogStatus('Р—Р°РіСЂСѓР¶Р°СЋ РґРѕСЃС‚СѓРїРЅС‹Рµ РїР°РєРё...');
+    try {
+      const packs = await loadDeckPacks();
+      const changed = setDeckOptions(packs, selectedValue);
+      setDeckCatalogStatus(packs.length ? 'Р’С‹Р±РµСЂРё РїР°Рє РґР»СЏ РєР°СЂС‚РѕС‡РЅС‹С… Р·Р°РґР°С‡.' : 'РќРµРѕС‚РєСЂС‹С‚С‹Рµ РїР°РєРё РЅРµ РЅР°Р№РґРµРЅС‹.');
+      if (changed && packs.length) await saveCurrentSettings();
+    } catch (error) {
+      setDeckOptions([], selectedValue);
+      setDeckCatalogStatus(`РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃРїРёСЃРѕРє РїР°РєРѕРІ: ${error?.message || error}`);
+    } finally {
+      controls.deckIds.disabled = false;
+    }
+  }
+
   for (const button of tabButtons) {
     button.addEventListener('click', () => setActiveTab(button.dataset.tab));
   }
 
-  for (const field of [controls.deckIds, controls.commentText, controls.replyText]) {
-    field.addEventListener('input', () => {
-      const next = readForm();
-      if (overviewDeckId) overviewDeckId.textContent = next.deckTaskPreferredDeckIds;
-      setStatus('');
-    });
-    field.addEventListener('change', () => {
-      const next = readForm();
-      if (overviewDeckId) overviewDeckId.textContent = next.deckTaskPreferredDeckIds;
-      setStatus('');
-    });
-  }
-
-  document.querySelector('[data-action="save"]').addEventListener('click', async () => {
-    try {
-      const nextSettings = readForm();
-      controls.deckIds.value = nextSettings.deckTaskPreferredDeckIds;
-      await saveSettings(nextSettings);
-      applyToForm(nextSettings);
-      setStatus('РќР°СЃС‚СЂРѕР№РєРё СЃРѕС…СЂР°РЅРµРЅС‹. РќР° РѕС‚РєСЂС‹С‚РѕР№ СЃС‚СЂР°РЅРёС†Рµ РёР·РјРµРЅРµРЅРёСЏ РїСЂРёРјРµРЅСЏС‚СЃСЏ РїРѕСЃР»Рµ РѕР±РЅРѕРІР»РµРЅРёСЏ.', 'success');
-    } catch (error) {
+  controls.deckIds.addEventListener('change', () => {
+    saveCurrentSettings().catch(error => {
       setStatus(`РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё: ${error?.message || error}`, 'error');
-    }
+    });
   });
+
+  for (const field of [controls.commentText, controls.replyText]) {
+    field.addEventListener('input', () => {
+      setStatus('');
+      scheduleSave();
+    });
+    field.addEventListener('change', scheduleSave);
+  }
 
   document.querySelector('[data-action="reset"]').addEventListener('click', async () => {
     try {
       await saveSettings(defaults);
       applyToForm(defaults);
+      await populateDeckSelect(defaults.deckTaskPreferredDeckIds);
       setStatus('РќР°СЃС‚СЂРѕР№РєРё Р°РІС‚РѕРјР°С‚РёР·Р°С†РёРё СЃР±СЂРѕС€РµРЅС‹ Рє Р·РЅР°С‡РµРЅРёСЏРј РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.', 'success');
     } catch (error) {
       setStatus(`РќРµ СѓРґР°Р»РѕСЃСЊ СЃР±СЂРѕСЃРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё: ${error?.message || error}`, 'error');
@@ -475,6 +587,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const initialSettings = await loadSettings();
   applyToForm(initialSettings);
+  await populateDeckSelect(initialSettings.deckTaskPreferredDeckIds);
   setActiveTab('settings');
   document.title = 'SailorM Battlepass';
 });

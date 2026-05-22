@@ -4585,6 +4585,42 @@
     return deckApi(`/api/v2/inventory/decks/?is_opened=false&user_id=${encodeURIComponent(userId)}&deck_id=${encodeURIComponent(deckId)}&page=1`);
   }
 
+  async function listAvailableDeckPacks() {
+    const user = await getCurrentUserProfile();
+    const currentUserId = Number(user?.id || 0);
+    if (!currentUserId) {
+      throw new Error('Не удалось определить текущий аккаунт для списка паков.');
+    }
+
+    const groups = new Map();
+    for (let page = 1; page <= 8; page += 1) {
+      const payload = await deckApi(`/api/v2/inventory/decks/?is_opened=false&user_id=${encodeURIComponent(currentUserId)}&page=${page}`);
+      const items = Array.isArray(payload?.results)
+        ? payload.results
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      for (const item of items) {
+        const deck = item?.deck || item || {};
+        const deckId = Number(deck?.id || item?.deck_id || 0);
+        if (!Number.isInteger(deckId) || deckId <= 0) continue;
+        const current = groups.get(deckId) || {
+          id: deckId,
+          name: String(deck?.name || item?.name || `Пак #${deckId}`).trim() || `Пак #${deckId}`,
+          count: 0
+        };
+        current.count += 1;
+        groups.set(deckId, current);
+      }
+
+      if (!payload?.next || !items.length) break;
+    }
+
+    return [...groups.values()]
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ru') || Number(a.id) - Number(b.id));
+  }
+
   async function openInventoryDeck(deckInstanceId) {
     return deckApi(`/api/v2/inventory/decks/${deckInstanceId}/open/`, {
       method: 'POST'
@@ -6641,6 +6677,7 @@
     runShopPurchaseTask,
     runTicketSpendTask,
     runCardUpgradeTask,
+    listAvailableDeckPacks,
     openConfiguredDeck,
     runNewCardsTask
   };
@@ -6776,7 +6813,10 @@
     autoRunDone: (done, failed) => `Автозапуск завершён: ${done} готово, ${failed} ошибок.`,
     settingsDialogDesc: 'Настройки автоматизации задач SailorM.',
     settingsDeckIds: 'Паки для карточек',
-    settingsDeckIdsDesc: 'Укажи id паков через запятую. Расширение возьмёт первый доступный с неоткрытой колодой.',
+    settingsDeckIdsDesc: 'Выбери неоткрытый пак из инвентаря. В списке видно название и количество.',
+    settingsDeckLoading: 'Загружаю доступные паки...',
+    settingsDeckEmpty: 'Неоткрытые паки не найдены. Оставлен текущий ID.',
+    settingsDeckLoadFailed: error => `Не удалось загрузить список паков: ${error}`,
     settingsDeckTest: 'Открыть указанный пак',
     settingsDeckTestRunning: 'Проверяю открытие пака...',
     settingsDeckTestDone: result => `Пак #${result.deckId} открыт, выбрана карта: ${result.chosenCard?.label || 'карта'}.`,
@@ -6788,10 +6828,9 @@
     settingsBlacklistDesc: 'Один тайтл на строку. Формат: scope:dir:reason. Можно оставить только dir.',
     settingsBlacklistAdd: 'Добавить тайтл',
     settingsBlacklistPlaceholder: 'solo-leveling_ или reading:solo-leveling_:licensed',
-    settingsSave: 'Сохранить',
     settingsReset: 'Сбросить',
     settingsClose: 'Закрыть',
-    settingsSaved: 'Настройки сохранены.',
+    settingsSaved: 'Настройки сохранены автоматически.',
     settingsResetDone: 'Настройки сброшены к значениям по умолчанию.',
     statusIdle: 'Ожидание',
     statusRunning: 'Выполняется',
@@ -7600,7 +7639,8 @@
         font-size: 12px;
         line-height: 1.35;
       }
-      .smbp-settings-page input[type="text"] {
+      .smbp-settings-page input[type="text"],
+      .smbp-settings-page select {
         width: 100%;
         min-width: 0;
         max-width: 100%;
@@ -7610,6 +7650,19 @@
         background: rgba(255,255,255,.035);
         color: #f5f7fb;
         font: 13px/1.2 "Segoe UI", system-ui, sans-serif;
+      }
+      .smbp-settings-page select {
+        cursor: pointer;
+        appearance: none;
+        background:
+          linear-gradient(45deg, transparent 50%, #aab3c2 50%) calc(100% - 17px) 50% / 7px 7px no-repeat,
+          linear-gradient(135deg, #aab3c2 50%, transparent 50%) calc(100% - 12px) 50% / 7px 7px no-repeat,
+          rgba(255,255,255,.035);
+        padding-right: 34px;
+      }
+      .smbp-settings-page select option {
+        color: #111827;
+        background: #f5f7fb;
       }
       .smbp-settings-page textarea {
         width: 100%;
@@ -9443,8 +9496,11 @@
       <div class="smbp-settings-grid">
         <div class="smbp-settings-card">
           <label>${t.settingsDeckIds}</label>
-          <input data-role="deckIds" type="text" maxlength="80" value="${escapeHtml(settings.deckTaskPreferredDeckIds)}">
+          <select data-role="deckIds">
+            <option value="${escapeHtml(settings.deckTaskPreferredDeckIds)}">Пак #${escapeHtml(settings.deckTaskPreferredDeckIds)}</option>
+          </select>
           <small>${t.settingsDeckIdsDesc}</small>
+          <small data-role="deckCatalogStatus">${t.settingsDeckLoading}</small>
           <button class="smbp-btn smbp-btn-secondary" data-action="testDeck" type="button">${t.settingsDeckTest}</button>
         </div>
         <div class="smbp-settings-card">
@@ -9465,7 +9521,6 @@
           <button class="smbp-btn smbp-btn-secondary" data-action="addBlacklist" type="button">${t.settingsBlacklistAdd}</button>
         </div>
         <div class="smbp-settings-actions">
-          <button class="smbp-btn smbp-btn-primary" data-action="save" type="button">${t.settingsSave}</button>
           <button class="smbp-btn smbp-btn-secondary" data-action="reset" type="button">${t.settingsReset}</button>
         </div>
         <div class="smbp-settings-status" data-role="status"></div>
@@ -9477,12 +9532,79 @@
   function attachSettingsPageBehavior(page, initialSettings, rerender) {
     const getValue = role => page.querySelector(`[data-role="${role}"]`);
     const status = getValue('status');
+    const deckCatalogStatus = getValue('deckCatalogStatus');
     const readSettings = () => normalizeSmbpSettings({
       deckTaskPreferredDeckIds: getValue('deckIds').value,
       commentTaskText: getValue('commentText').value,
       commentReplyTaskText: getValue('replyText').value,
       titleBlacklist: parseTitleBlacklist(getValue('titleBlacklist')?.value || '')
     });
+    let saveTimer = null;
+
+    const setStatus = message => {
+      if (status) status.textContent = message || '';
+    };
+
+    const formatDeckOption = pack => {
+      const count = Number(pack?.count || 0);
+      const suffix = `${count} шт.`;
+      return `${pack?.name || `Пак #${pack?.id || '?'}`} · ${suffix} · #${pack?.id || '?'}`;
+    };
+
+    const setDeckOptions = (packs = [], selectedValue = initialSettings.deckTaskPreferredDeckIds) => {
+      const select = getValue('deckIds');
+      if (!select) return false;
+      const selectedId = Number(normalizeAutomationSettings({ deckTaskPreferredDeckIds: selectedValue }).deckTaskPreferredDeckIds.split(',')[0] || 0);
+      let nextSelected = packs.some(pack => Number(pack.id) === selectedId)
+        ? selectedId
+        : Number(packs[0]?.id || selectedId || 10);
+      if (!Number.isInteger(nextSelected) || nextSelected <= 0) nextSelected = 10;
+
+      const optionItems = packs.length
+        ? packs
+        : [{ id: nextSelected, name: `Пак #${nextSelected}`, count: 0 }];
+
+      select.innerHTML = optionItems
+        .map(pack => `<option value="${escapeHtml(pack.id)}">${escapeHtml(formatDeckOption(pack))}</option>`)
+        .join('');
+      select.value = String(nextSelected);
+      return String(nextSelected) !== String(selectedId);
+    };
+
+    const saveNow = async (message = t.settingsSaved) => {
+      const nextSettings = readSettings();
+      await smb.saveSettings(nextSettings);
+      setStatus(message);
+      return nextSettings;
+    };
+
+    const scheduleSave = () => {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        saveNow().catch(error => {
+          setStatus(t.taskFailed(error?.message || error));
+        });
+      }, 450);
+    };
+
+    const loadDeckOptions = async () => {
+      const select = getValue('deckIds');
+      if (!select || typeof smb.tasks?.listAvailableDeckPacks !== 'function') return;
+      select.disabled = true;
+      if (deckCatalogStatus) deckCatalogStatus.textContent = t.settingsDeckLoading;
+      try {
+        const packs = await smb.tasks.listAvailableDeckPacks();
+        const changed = setDeckOptions(packs, initialSettings.deckTaskPreferredDeckIds);
+        if (deckCatalogStatus) {
+          deckCatalogStatus.textContent = packs.length ? t.settingsDeckIdsDesc : t.settingsDeckEmpty;
+        }
+        if (changed && packs.length) await saveNow(t.settingsSaved);
+      } catch (error) {
+        if (deckCatalogStatus) deckCatalogStatus.textContent = t.settingsDeckLoadFailed(error?.message || error);
+      } finally {
+        select.disabled = false;
+      }
+    };
 
     page.addEventListener('click', async event => {
       const action = event.target.closest('[data-action]')?.getAttribute('data-action');
@@ -9491,12 +9613,6 @@
       event.preventDefault();
       event.stopPropagation();
 
-      if (action === 'save') {
-        const nextSettings = readSettings();
-        await smb.saveSettings(nextSettings);
-        status.textContent = t.settingsSaved;
-        return;
-      }
       if (action === 'addBlacklist') {
         const input = getValue('blacklistAdd');
         const list = getValue('titleBlacklist');
@@ -9504,21 +9620,21 @@
         if (!value || !list) return;
         list.value = [list.value.trim(), value].filter(Boolean).join('\n');
         input.value = '';
-        status.textContent = '';
+        await saveNow(t.settingsSaved);
         return;
       }
       if (action === 'testDeck') {
         const button = event.target.closest('button');
         button.disabled = true;
         button.style.opacity = '0.65';
-        status.textContent = t.settingsDeckTestRunning;
+        setStatus(t.settingsDeckTestRunning);
         try {
           const result = await smb.tasks.openConfiguredDeck(getValue('deckIds').value, message => {
-            status.textContent = message;
+            setStatus(message);
           });
-          status.textContent = t.settingsDeckTestDone(result);
+          setStatus(t.settingsDeckTestDone(result));
         } catch (error) {
-          status.textContent = t.taskFailed(error.message || error);
+          setStatus(t.taskFailed(error.message || error));
         } finally {
           button.disabled = false;
           button.style.opacity = '';
@@ -9534,16 +9650,26 @@
       }
     }, true);
 
-    for (const role of ['deckIds', 'commentText', 'replyText', 'titleBlacklist', 'blacklistAdd']) {
+    const deckSelect = getValue('deckIds');
+    deckSelect?.addEventListener('change', () => {
+      saveNow().catch(error => {
+        setStatus(t.taskFailed(error?.message || error));
+      });
+    });
+
+    for (const role of ['commentText', 'replyText', 'titleBlacklist']) {
       const field = getValue(role);
       if (!field) continue;
       field.addEventListener('input', () => {
-        status.textContent = '';
+        setStatus('');
+        scheduleSave();
       });
       field.addEventListener('change', () => {
-        status.textContent = '';
+        scheduleSave();
       });
     }
+
+    loadDeckOptions();
   }
 
   async function renderSettingsPage() {
