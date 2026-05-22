@@ -13,6 +13,15 @@
   const VERSION = '1.0.0';
   const MAX_DIAGNOSTIC_ENTRIES = 120;
   const MAX_EXECUTION_HISTORY_ENTRIES = 80;
+  const REMANGA_PRIMARY_HOST = 'remanga.org';
+  const REMANGA_MIRROR_HOST = 'xn--80aaig9ahr.xn--c1avg';
+  const REMANGA_PRIMARY_ORIGIN = `https://${REMANGA_PRIMARY_HOST}`;
+  const REMANGA_TAB_URL_PATTERNS = [
+    `*://${REMANGA_PRIMARY_HOST}/*`,
+    `*://*.${REMANGA_PRIMARY_HOST}/*`,
+    `*://${REMANGA_MIRROR_HOST}/*`,
+    `*://*.${REMANGA_MIRROR_HOST}/*`
+  ];
   const ACCOUNT_SCOPED_SETTING_KEYS = new Set([
     'deckTaskPreferredDeckIds',
     'searchHistory',
@@ -91,6 +100,57 @@
       .replace(/[.,!?():;]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  function getRemangaSiteContext(value = '') {
+    const fallbackUrl = (() => {
+      try {
+        return location?.href || REMANGA_PRIMARY_ORIGIN;
+      } catch (_error) {
+        return REMANGA_PRIMARY_ORIGIN;
+      }
+    })();
+
+    try {
+      const url = new URL(String(value || fallbackUrl), REMANGA_PRIMARY_ORIGIN);
+      const host = String(url.hostname || '').toLowerCase();
+      const isPrimary = host === REMANGA_PRIMARY_HOST || host.endsWith(`.${REMANGA_PRIMARY_HOST}`);
+      const isMirror = host === REMANGA_MIRROR_HOST || host.endsWith(`.${REMANGA_MIRROR_HOST}`);
+      const isRemanga = isPrimary || isMirror;
+      return {
+        isRemanga,
+        isPrimary,
+        isMirror,
+        mode: isMirror ? 'mirror' : 'primary',
+        host,
+        origin: isRemanga ? url.origin : REMANGA_PRIMARY_ORIGIN
+      };
+    } catch (_error) {
+      return {
+        isRemanga: false,
+        isPrimary: true,
+        isMirror: false,
+        mode: 'primary',
+        host: REMANGA_PRIMARY_HOST,
+        origin: REMANGA_PRIMARY_ORIGIN
+      };
+    }
+  }
+
+  function isRemangaUrl(url) {
+    return getRemangaSiteContext(url).isRemanga;
+  }
+
+  function getCurrentSiteContext() {
+    return getRemangaSiteContext();
+  }
+
+  function getCurrentSiteOrigin() {
+    return getCurrentSiteContext().origin;
+  }
+
+  function siteUrl(path = '/') {
+    return new URL(String(path || '/'), getCurrentSiteOrigin()).toString();
   }
 
   function getRateLimitKey(path, method = 'GET') {
@@ -475,12 +535,21 @@
     DIAGNOSTICS_KEY,
     EXECUTION_HISTORY_KEY,
     VERSION,
+    REMANGA_PRIMARY_HOST,
+    REMANGA_MIRROR_HOST,
+    REMANGA_PRIMARY_ORIGIN,
+    REMANGA_TAB_URL_PATTERNS,
     DEFAULT_SETTINGS,
     GAME_IDS,
     EVENT_TO_GAME,
     TASK_SECTIONS,
     sleep,
     normalizeText,
+    getRemangaSiteContext,
+    isRemangaUrl,
+    getCurrentSiteContext,
+    getCurrentSiteOrigin,
+    siteUrl,
     extractApiErrorMessage,
     api,
     apiGet,
@@ -923,8 +992,6 @@
   const LIKE_PLAN_QUERY_PAGES = 6;
   const LIKE_PLAN_PROBE_BATCH_SIZE = 4;
   const SEARCH_HISTORY_LIMIT = 40;
-  const REMANGA_PRIMARY_ORIGIN = 'https://remanga.org';
-  const REMANGA_MIRROR_HOST = 'xn--80aaig9ahr.xn--c1avg';
   const REMANGA_API_ORIGIN = 'https://api.remanga.org';
   const READING_FAST_CHUNK_SIZE = 3;
   const READING_FAST_ITEM_DELAY_MS = 350;
@@ -962,19 +1029,10 @@
   };
   const titleDetailsCache = createCache(120);
 
-  function getSiteOrigin() {
-    try {
-      const host = String(location?.hostname || '').toLowerCase();
-      if (host === 'remanga.org' || host.endsWith('.remanga.org') || host === REMANGA_MIRROR_HOST || host.endsWith(`.${REMANGA_MIRROR_HOST}`)) {
-        return location.origin;
-      }
-    } catch (_error) {
-    }
-    return REMANGA_PRIMARY_ORIGIN;
-  }
-
   function siteUrl(path) {
-    return new URL(String(path || '/'), getSiteOrigin()).toString();
+    return typeof smb.siteUrl === 'function'
+      ? smb.siteUrl(path)
+      : new URL(String(path || '/'), location.origin).toString();
   }
 
   function buildStateFromPayloads(tasksPayload, currentPayload) {

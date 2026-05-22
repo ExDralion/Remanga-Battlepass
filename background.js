@@ -8,7 +8,8 @@ const REMANGA_TAB_URL_PATTERNS = [
   '*://xn--80aaig9ahr.xn--c1avg/*',
   '*://*.xn--80aaig9ahr.xn--c1avg/*'
 ];
-const REMANGA_HOSTS = new Set(['remanga.org', 'xn--80aaig9ahr.xn--c1avg']);
+const REMANGA_PRIMARY_HOST = 'remanga.org';
+const REMANGA_MIRROR_HOST = 'xn--80aaig9ahr.xn--c1avg';
 
 let battlepassStateCache = {
   key: '',
@@ -1832,11 +1833,30 @@ function queryTabs(queryInfo) {
 }
 
 function isRemangaUrl(url) {
+  return getRemangaSiteContext(url).isRemanga;
+}
+
+function getRemangaSiteContext(url) {
   try {
-    const host = new URL(String(url || '')).hostname.toLowerCase();
-    return REMANGA_HOSTS.has(host) || [...REMANGA_HOSTS].some(base => host.endsWith(`.${base}`));
+    const parsed = new URL(String(url || ''));
+    const host = parsed.hostname.toLowerCase();
+    const isPrimary = host === REMANGA_PRIMARY_HOST || host.endsWith(`.${REMANGA_PRIMARY_HOST}`);
+    const isMirror = host === REMANGA_MIRROR_HOST || host.endsWith(`.${REMANGA_MIRROR_HOST}`);
+    return {
+      isRemanga: isPrimary || isMirror,
+      isPrimary,
+      isMirror,
+      mode: isMirror ? 'mirror' : 'primary',
+      origin: isPrimary || isMirror ? parsed.origin : `https://${REMANGA_PRIMARY_HOST}`
+    };
   } catch (_error) {
-    return false;
+    return {
+      isRemanga: false,
+      isPrimary: true,
+      isMirror: false,
+      mode: 'primary',
+      origin: `https://${REMANGA_PRIMARY_HOST}`
+    };
   }
 }
 
