@@ -2,6 +2,13 @@
 const ACTION_TIMEOUT_MS = 60000;
 const DEFAULT_STAY_MS = 5000;
 const BATTLEPASS_STATE_CACHE_TTL_MS = 10000;
+const REMANGA_TAB_URL_PATTERNS = [
+  '*://remanga.org/*',
+  '*://*.remanga.org/*',
+  '*://xn--80aaig9ahr.xn--c1avg/*',
+  '*://*.xn--80aaig9ahr.xn--c1avg/*'
+];
+const REMANGA_HOSTS = new Set(['remanga.org', 'xn--80aaig9ahr.xn--c1avg']);
 
 let battlepassStateCache = {
   key: '',
@@ -1760,7 +1767,7 @@ async function resolveRemangaTabId(sourceTabId, preferredWindowId) {
   const sourceTab = await getTabSafe(sourceTabId);
   if (sourceTab?.id && isRemangaUrl(sourceTab.url)) return sourceTab.id;
 
-  const tabs = await queryTabs({ url: ['*://remanga.org/*', '*://*.remanga.org/*'] });
+  const tabs = await queryTabs({ url: REMANGA_TAB_URL_PATTERNS });
   const preferredWindowTab = tabs.find(tab => tab.windowId === preferredWindowId && isRemangaUrl(tab.url));
   if (preferredWindowTab?.id) return preferredWindowTab.id;
 
@@ -1825,7 +1832,12 @@ function queryTabs(queryInfo) {
 }
 
 function isRemangaUrl(url) {
-  return /^https?:\/\/(?:[^/]+\.)?remanga\.org\//i.test(String(url || ''));
+  try {
+    const host = new URL(String(url || '')).hostname.toLowerCase();
+    return REMANGA_HOSTS.has(host) || [...REMANGA_HOSTS].some(base => host.endsWith(`.${base}`));
+  } catch (_error) {
+    return false;
+  }
 }
 
 function delay(ms) {

@@ -513,6 +513,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const smb = window.SMBP;
   const settingsKey = smb?.STORE_KEY || 'smbp-settings';
+  const remangaUrlPatterns = [
+    '*://remanga.org/*',
+    '*://*.remanga.org/*',
+    '*://xn--80aaig9ahr.xn--c1avg/*',
+    '*://*.xn--80aaig9ahr.xn--c1avg/*'
+  ];
   const defaults = {
     deckTaskPreferredDeckIds: '10',
     commentTaskText: 'РЎРїР°СЃРёР±Рѕ Р·Р° РіР»Р°РІСѓ!',
@@ -649,11 +655,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function remangaApi(path) {
-    const response = await fetch(`https://remanga.org${path}`, {
+    const origin = await getRemangaOrigin();
+    const response = await fetch(`${origin}${path}`, {
       credentials: 'include'
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.json();
+  }
+
+  function isRemangaUrl(url) {
+    try {
+      const host = new URL(String(url || '')).hostname.toLowerCase();
+      return host === 'remanga.org' ||
+        host.endsWith('.remanga.org') ||
+        host === 'xn--80aaig9ahr.xn--c1avg' ||
+        host.endsWith('.xn--80aaig9ahr.xn--c1avg');
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  async function queryTabs(queryInfo) {
+    return chrome.tabs.query(queryInfo);
+  }
+
+  async function getRemangaOrigin() {
+    const activeTabs = await queryTabs({ active: true, currentWindow: true }).catch(() => []);
+    const activeTab = activeTabs.find(tab => isRemangaUrl(tab.url));
+    if (activeTab?.url) return new URL(activeTab.url).origin;
+
+    const tabs = await queryTabs({ url: remangaUrlPatterns }).catch(() => []);
+    const tab = tabs.find(item => isRemangaUrl(item.url));
+    if (tab?.url) return new URL(tab.url).origin;
+
+    return 'https://remanga.org';
   }
 
   function unwrapPayload(payload) {

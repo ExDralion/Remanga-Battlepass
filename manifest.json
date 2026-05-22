@@ -16,7 +16,9 @@
                     ],
     "host_permissions":  [
                              "*://remanga.org/*",
-                             "*://*.remanga.org/*"
+                             "*://*.remanga.org/*",
+                             "*://xn--80aaig9ahr.xn--c1avg/*",
+                             "*://*.xn--80aaig9ahr.xn--c1avg/*"
                          ],
     "action":  {
                    "default_popup":  "popup.html"
@@ -28,7 +30,9 @@
                             {
                                 "matches":  [
                                                 "*://remanga.org/*",
-                                                "*://*.remanga.org/*"
+                                                "*://*.remanga.org/*",
+                                                "*://xn--80aaig9ahr.xn--c1avg/*",
+                                                "*://*.xn--80aaig9ahr.xn--c1avg/*"
                                             ],
                                 "js":  [
                                            "content.js"

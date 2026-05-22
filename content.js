@@ -923,6 +923,8 @@
   const LIKE_PLAN_QUERY_PAGES = 6;
   const LIKE_PLAN_PROBE_BATCH_SIZE = 4;
   const SEARCH_HISTORY_LIMIT = 40;
+  const REMANGA_PRIMARY_ORIGIN = 'https://remanga.org';
+  const REMANGA_MIRROR_HOST = 'xn--80aaig9ahr.xn--c1avg';
   const REMANGA_API_ORIGIN = 'https://api.remanga.org';
   const READING_FAST_CHUNK_SIZE = 3;
   const READING_FAST_ITEM_DELAY_MS = 350;
@@ -959,6 +961,21 @@
     categories: null
   };
   const titleDetailsCache = createCache(120);
+
+  function getSiteOrigin() {
+    try {
+      const host = String(location?.hostname || '').toLowerCase();
+      if (host === 'remanga.org' || host.endsWith('.remanga.org') || host === REMANGA_MIRROR_HOST || host.endsWith(`.${REMANGA_MIRROR_HOST}`)) {
+        return location.origin;
+      }
+    } catch (_error) {
+    }
+    return REMANGA_PRIMARY_ORIGIN;
+  }
+
+  function siteUrl(path) {
+    return new URL(String(path || '/'), getSiteOrigin()).toString();
+  }
 
   function buildStateFromPayloads(tasksPayload, currentPayload) {
     const content = tasksPayload?.content || {};
@@ -2016,7 +2033,7 @@
           index: chapterIndex,
           isLocked,
           isRead,
-          url: `https://remanga.org/manga/${dir}/${chapter.id}?page=1`
+          url: siteUrl(`/manga/${dir}/${chapter.id}?page=1`)
         });
         if (chaptersOut.length >= limit) break;
       }
@@ -2053,7 +2070,7 @@
           id: chapter.id,
           index: Number(chapter?.index || 0),
           rated: isRatedChapter(chapter),
-          url: `https://remanga.org/manga/${dir}/${chapter.id}?page=1`
+          url: siteUrl(`/manga/${dir}/${chapter.id}?page=1`)
         });
         if (chaptersOut.length >= limit) break;
       }
@@ -3475,12 +3492,12 @@
 
     return {
       userId,
-      inventoryUrl: `https://remanga.org/user/${userId}/inventory?type=customization&shopType=wallpapers`,
+      inventoryUrl: siteUrl(`/user/${userId}/inventory?type=customization&shopType=wallpapers`),
       categoryUrls: {
-        avatars: `https://remanga.org/user/${userId}/inventory?type=customization&shopType=avatars`,
-        wallpapers: `https://remanga.org/user/${userId}/inventory?type=customization&shopType=wallpapers`,
-        frames: `https://remanga.org/user/${userId}/inventory?type=customization&shopType=frames`,
-        theme: `https://remanga.org/user/${userId}/inventory?type=customization&shopType=theme`
+        avatars: siteUrl(`/user/${userId}/inventory?type=customization&shopType=avatars`),
+        wallpapers: siteUrl(`/user/${userId}/inventory?type=customization&shopType=wallpapers`),
+        frames: siteUrl(`/user/${userId}/inventory?type=customization&shopType=frames`),
+        theme: siteUrl(`/user/${userId}/inventory?type=customization&shopType=theme`)
       },
       equippedImages: {
         avatars: currentUser?.avatar?.high || currentUser?.avatar?.mid || currentUser?.avatar?.image?.high || currentUser?.avatar?.image?.mid || '',
@@ -3488,7 +3505,7 @@
         frames: currentUser?.frame?.high || currentUser?.frame?.mid || '',
         theme: currentUser?.theme?.cover?.high || currentUser?.theme?.cover?.mid || ''
       },
-      profileUrl: `https://remanga.org/user/${userId}/about`
+      profileUrl: siteUrl(`/user/${userId}/about`)
     };
   }
 
@@ -3587,7 +3604,7 @@
       .slice(0, Math.max(remaining * 4, 8))
       .map(dir => ({
         dir,
-        url: `https://remanga.org/guild/${dir}/about`
+        url: siteUrl(`/guild/${dir}/about`)
       }));
 
     return {
@@ -3615,7 +3632,7 @@
       const titleId = Number(details?.id || 0);
       const countComments = Number(details?.count_comments || 0);
       if (!titleId || !countComments) continue;
-      const titleUrl = `https://remanga.org/manga/${dir}/main`;
+      const titleUrl = siteUrl(`/manga/${dir}/main`);
       if (!seenUrls.has(titleUrl)) {
         seenUrls.add(titleUrl);
         selectedUrls.push(titleUrl);
@@ -4418,7 +4435,7 @@
       chapterId,
       chapterIndex: Number(chapter.index || chapter.chapter || 0),
       price: Number.parseFloat(String(chapter.price ?? '').replace(',', '.')) || 0,
-      url: `https://remanga.org/manga/${encodeURIComponent(dir)}/${chapterId}`
+      url: siteUrl(`/manga/${encodeURIComponent(dir)}/${chapterId}`)
     };
   }
 

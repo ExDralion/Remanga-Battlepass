@@ -8,6 +8,7 @@ Compact build of the ReManga battlepass automation extension.
 - Automates supported reading, catalog, likes, profile, minigame, card and reward tasks.
 - Shows an in-page menu with Overview, Tasks, Rewards and Settings.
 - Claims available battlepass rewards using the latest available level when possible.
+- Works on `remanga.org` and the mirror `реманга.орг` (`xn--80aaig9ahr.xn--c1avg`).
 
 ## Install
 
@@ -15,7 +16,7 @@ Compact build of the ReManga battlepass automation extension.
 2. Enable Developer mode.
 3. Click `Load unpacked`.
 4. Select this folder.
-5. Open `https://remanga.org/user/battlepass/tasks`.
+5. Open `https://remanga.org/user/battlepass/tasks` or `https://реманга.орг/user/battlepass/tasks`.
 
 ## Build Layout
 
