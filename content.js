@@ -7637,7 +7637,7 @@
       .smbp-overview-panel-title,
       .smbp-overview-metric span,
       .smbp-bp-line span,
-      .smbp-badge-state span {
+      .smbp-overview-badge-state span {
         display: block;
         color: #9aa3b4;
         font-size: 10px;
@@ -7813,20 +7813,20 @@
         height: 100%;
         object-fit: cover;
       }
-      .smbp-badge-state {
+      .smbp-overview-badge-state {
         position: relative;
         z-index: 1;
         min-width: 0;
         flex: 1 1 auto;
       }
-      .smbp-badge-state strong {
+      .smbp-overview-badge-state strong {
         display: block;
         margin-top: 6px;
         color: #f7f9ff;
         font-size: 22px;
         line-height: 1.12;
       }
-      .smbp-badge-state small {
+      .smbp-overview-badge-state small {
         display: block;
         margin-top: 8px;
         color: #aab2c1;
@@ -11417,7 +11417,7 @@
           <div class="smbp-badge-icon">
             ${badge?.icon ? `<img src="${escapeHtml(badge.icon)}" alt="${escapeHtml(badge.name)}">` : 'BP'}
           </div>
-          <div class="smbp-badge-state">
+          <div class="smbp-overview-badge-state">
             <span>Бейдж батлпасса</span>
             <strong>${escapeHtml(badgeStatus)}</strong>
             <small>${escapeHtml(badgeMeta)}</small>
