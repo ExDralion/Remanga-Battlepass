@@ -6815,6 +6815,7 @@
     settingsDeckIds: 'Паки для карточек',
     settingsDeckIdsDesc: 'Выбери неоткрытый пак из инвентаря. В списке видно название и количество.',
     settingsDeckLoading: 'Загружаю доступные паки...',
+    settingsDeckLoaded: count => `Доступно паков: ${count}. Выбор сохраняется сразу.`,
     settingsDeckEmpty: 'Неоткрытые паки не найдены. Оставлен текущий ID.',
     settingsDeckLoadFailed: error => `Не удалось загрузить список паков: ${error}`,
     settingsDeckTest: 'Открыть указанный пак',
@@ -9596,7 +9597,7 @@
         const packs = await smb.tasks.listAvailableDeckPacks();
         const changed = setDeckOptions(packs, initialSettings.deckTaskPreferredDeckIds);
         if (deckCatalogStatus) {
-          deckCatalogStatus.textContent = packs.length ? t.settingsDeckIdsDesc : t.settingsDeckEmpty;
+          deckCatalogStatus.textContent = packs.length ? t.settingsDeckLoaded(packs.length) : t.settingsDeckEmpty;
         }
         if (changed && packs.length) await saveNow(t.settingsSaved);
       } catch (error) {
