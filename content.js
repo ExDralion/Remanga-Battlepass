@@ -9,8 +9,27 @@
 
   const STORE_KEY = 'smbp-settings';
   const DIAGNOSTICS_KEY = 'smbp-diagnostics';
+  const EXECUTION_HISTORY_KEY = 'smbp-execution-history';
   const VERSION = '1.0.0';
   const MAX_DIAGNOSTIC_ENTRIES = 120;
+  const MAX_EXECUTION_HISTORY_ENTRIES = 80;
+  const ACCOUNT_SCOPED_SETTING_KEYS = new Set([
+    'deckTaskPreferredDeckIds',
+    'searchHistory',
+    'failedSearchHistory',
+    'titleBlacklist',
+    'chapterHistory',
+    'similarHistory',
+    'commentHistory',
+    'commentVoteHistory',
+    'commentReplyHistory',
+    'profileHistory',
+    'friendRequestHistory',
+    'guildRequestHistory',
+    'exchangeTargetHistory',
+    'exchangeTargetHistoryOwnerUserId',
+    'titleCandidateCache'
+  ]);
   const DEFAULT_SETTINGS = {
     rewardsHidePaid: false,
     inlineTaskButtonsEnabled: true,
@@ -33,7 +52,8 @@
     profileHistory: [],
     friendRequestHistory: [],
     guildRequestHistory: [],
-    exchangeTargetHistory: []
+    exchangeTargetHistory: [],
+    titleCandidateCache: {}
   };
 
   const GAME_IDS = {
@@ -114,22 +134,68 @@
     return String(fallback || '').trim();
   }
 
-  async function api(path, { method = 'GET', body, maxRequestsPerMinute } = {}) {
+  function compactDetails(value, limit = 700) {
+    if (value === undefined || value === null) return value;
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    return text.length > limit ? `${text.slice(0, limit)}...` : text;
+  }
+
+  async function recordApiDiagnostic(entry) {
+    try {
+      await recordDiagnostic({
+        level: entry.level || 'error',
+        scope: 'api',
+        type: entry.type || 'request_failed',
+        message: entry.message || 'API request failed',
+        details: {
+          method: entry.method,
+          path: entry.path,
+          status: entry.status || null,
+          attempt: entry.attempt || null,
+          requestBody: compactDetails(entry.requestBody),
+          response: compactDetails(entry.response)
+        }
+      });
+    } catch (_error) {
+    }
+  }
+
+  async function api(path, { method = 'GET', body, maxRequestsPerMinute, retryUnsafe = false } = {}) {
     const headers = {};
     if (body !== undefined) headers['content-type'] = 'application/json';
     const normalizedMethod = String(method || 'GET').toUpperCase();
+    const retryStatuses = new Set([429, 502, 503, 504]);
 
     const runRequest = async () => {
-      const maxAttempts = normalizedMethod === 'GET' ? 3 : 1;
+      const maxAttempts = normalizedMethod === 'GET' || retryUnsafe ? 3 : 1;
       let lastError = null;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        const response = await fetch(path, {
-          method,
-          headers,
-          credentials: 'include',
-          body: body !== undefined ? JSON.stringify(body) : undefined
-        });
+        let response = null;
+        try {
+          response = await fetch(path, {
+            method,
+            headers,
+            credentials: 'include',
+            body: body !== undefined ? JSON.stringify(body) : undefined
+          });
+        } catch (error) {
+          lastError = error;
+          await recordApiDiagnostic({
+            level: attempt < maxAttempts ? 'warn' : 'error',
+            type: 'network_failed',
+            message: error?.message || String(error),
+            method: normalizedMethod,
+            path,
+            attempt,
+            requestBody: body
+          });
+          if (attempt < maxAttempts) {
+            await sleep(450 * attempt);
+            continue;
+          }
+          throw error;
+        }
 
         if (!response.ok) {
           const text = await response.text().catch(() => '');
@@ -141,7 +207,18 @@
             message = text || message;
           }
           lastError = new Error(`${message}${message.includes('HTTP ') ? '' : ` (HTTP ${response.status})`}`);
-          if (normalizedMethod === 'GET' && [429, 502, 503, 504].includes(Number(response.status)) && attempt < maxAttempts) {
+          await recordApiDiagnostic({
+            level: retryStatuses.has(Number(response.status)) && attempt < maxAttempts ? 'warn' : 'error',
+            type: 'http_failed',
+            message: lastError.message,
+            method: normalizedMethod,
+            path,
+            status: Number(response.status),
+            attempt,
+            requestBody: body,
+            response: text
+          });
+          if (retryStatuses.has(Number(response.status)) && attempt < maxAttempts) {
             await sleep(450 * attempt);
             continue;
           }
@@ -206,16 +283,51 @@
     if (!chrome?.storage?.local) return { ...DEFAULT_SETTINGS };
     return new Promise(resolve => {
       chrome.storage.local.get([STORE_KEY], data => {
-        resolve({ ...DEFAULT_SETTINGS, ...(data?.[STORE_KEY] || {}) });
+        const raw = data?.[STORE_KEY] || {};
+        const accountId = String(window.SMBP?.activeAccountId || '');
+        const accountProfiles = raw?.accountProfiles && typeof raw.accountProfiles === 'object' ? raw.accountProfiles : {};
+        const accountSettings = accountId && accountProfiles[accountId] && typeof accountProfiles[accountId] === 'object'
+          ? accountProfiles[accountId]
+          : {};
+        resolve({ ...DEFAULT_SETTINGS, ...raw, ...accountSettings, accountProfiles });
       });
     });
   }
 
   async function saveSettings(patch) {
-    const next = { ...(await loadSettings()), ...patch };
-    if (!chrome?.storage?.local) return next;
+    if (!chrome?.storage?.local) return { ...(await loadSettings()), ...patch };
     return new Promise(resolve => {
-      chrome.storage.local.set({ [STORE_KEY]: next }, () => resolve(next));
+      chrome.storage.local.get([STORE_KEY], data => {
+        const raw = data?.[STORE_KEY] || {};
+        const accountId = String(window.SMBP?.activeAccountId || '');
+        const accountProfiles = raw?.accountProfiles && typeof raw.accountProfiles === 'object'
+          ? { ...raw.accountProfiles }
+          : {};
+        const globalPatch = {};
+        const scopedPatch = {};
+
+        for (const [key, value] of Object.entries(patch || {})) {
+          if (accountId && ACCOUNT_SCOPED_SETTING_KEYS.has(key)) scopedPatch[key] = value;
+          else globalPatch[key] = value;
+        }
+
+        if (accountId && Object.keys(scopedPatch).length) {
+          accountProfiles[accountId] = {
+            ...(accountProfiles[accountId] || {}),
+            ...scopedPatch
+          };
+        }
+
+        const nextRaw = {
+          ...raw,
+          ...globalPatch,
+          accountProfiles
+        };
+
+        chrome.storage.local.set({ [STORE_KEY]: nextRaw }, () => {
+          resolve({ ...DEFAULT_SETTINGS, ...nextRaw, ...(accountId ? accountProfiles[accountId] : {}) });
+        });
+      });
     });
   }
 
@@ -261,6 +373,44 @@
 
   async function clearDiagnostics() {
     return saveDiagnostics([]);
+  }
+
+  async function loadExecutionHistory() {
+    if (!chrome?.storage?.local) return [];
+    return new Promise(resolve => {
+      chrome.storage.local.get([EXECUTION_HISTORY_KEY], data => {
+        const entries = Array.isArray(data?.[EXECUTION_HISTORY_KEY]) ? data[EXECUTION_HISTORY_KEY] : [];
+        resolve(entries);
+      });
+    });
+  }
+
+  async function saveExecutionHistory(entries) {
+    const normalizedEntries = Array.isArray(entries)
+      ? entries.slice(0, MAX_EXECUTION_HISTORY_ENTRIES)
+      : [];
+    if (!chrome?.storage?.local) return normalizedEntries;
+    return new Promise(resolve => {
+      chrome.storage.local.set({ [EXECUTION_HISTORY_KEY]: normalizedEntries }, () => resolve(normalizedEntries));
+    });
+  }
+
+  async function recordTaskExecution(entry = {}) {
+    const nextEntry = {
+      id: String(entry.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+      at: entry.at || new Date().toISOString(),
+      accountId: Number(entry.accountId || window.SMBP?.activeAccountId || 0) || null,
+      taskId: Number(entry.taskId || 0) || null,
+      taskName: String(entry.taskName || 'Задача'),
+      status: String(entry.status || 'done'),
+      exp: Number(entry.exp || 0) || 0,
+      progress: String(entry.progress || ''),
+      message: String(entry.message || '').trim()
+    };
+    const current = await loadExecutionHistory();
+    current.unshift(nextEntry);
+    await saveExecutionHistory(current);
+    return nextEntry;
   }
 
   function createToastRoot() {
@@ -323,6 +473,7 @@
   window.SMBP = {
     STORE_KEY,
     DIAGNOSTICS_KEY,
+    EXECUTION_HISTORY_KEY,
     VERSION,
     DEFAULT_SETTINGS,
     GAME_IDS,
@@ -348,6 +499,9 @@
     saveDiagnostics,
     recordDiagnostic,
     clearDiagnostics,
+    loadExecutionHistory,
+    saveExecutionHistory,
+    recordTaskExecution,
     toast
   };
 })();
@@ -780,6 +934,8 @@
   const LIKE_FAST_ITEM_DELAY_MS = 350;
   const LIKE_FAST_SETTLE_ATTEMPTS = 8;
   const LIKE_FAST_SETTLE_DELAY_MS = 450;
+  const TITLE_CANDIDATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+  const TITLE_CANDIDATE_CACHE_LIMIT = 80;
   const EXPERT_RATING_REQUIRED_CHAPTERS = 5;
   const EXPERT_RATING_QUERY_PAGES = 8;
   const EXPERT_RATING_PROBE_BATCH_SIZE = 4;
@@ -815,6 +971,14 @@
 
     const battlepassState = currentPayload?.content?.battlepass || {};
     const battlepass = battlepassState?.battlepass || {};
+    const currentUserId = Number(
+      currentPayload?.content?.user?.id ||
+      currentPayload?.content?.profile?.id ||
+      currentPayload?.content?.account?.id ||
+      currentPayload?.content?.user_id ||
+      0
+    ) || 0;
+    if (currentUserId) smb.activeAccountId = currentUserId;
 
     return {
       tasksPayload,
@@ -824,7 +988,8 @@
       automatableTasks,
       exp: Number(battlepassState?.exp || 0),
       expPerLevel: Number(battlepass?.exp_per_level || 0),
-      battlepassName: battlepass?.name || 'Battlepass'
+      battlepassName: battlepass?.name || 'Battlepass',
+      currentUserId
     };
   }
 
@@ -1904,6 +2069,7 @@
     const failedDirs = await getFailedSearchDirs(task.id);
     const blacklistedDirs = await getBlacklistedTitleDirs('reading');
     const viewedChapters = await getViewedChapterIds('reading');
+    const cacheBucket = getCandidateCacheBucket('world', task);
 
     if (!remaining) {
       return {
@@ -1914,6 +2080,18 @@
 
     const selectedTitles = [];
     const selectedDirs = new Set();
+    const cachedTitles = await takeCachedTitleCandidates(cacheBucket, Math.min(remaining + 3, WORLD_TRAVEL_PLAN_LIMIT), {
+      viewedChapters,
+      blacklistedDirs: new Set([...visitedDirs, ...failedDirs, ...blacklistedDirs]),
+      usedDirs: selectedDirs
+    });
+    selectedTitles.push(...cachedTitles);
+    if (selectedTitles.length >= Math.min(remaining + 1, WORLD_TRAVEL_PLAN_LIMIT)) {
+      return {
+        remaining,
+        selectedTitles
+      };
+    }
     const probedDirs = new Set();
     const relaxedProbedDirs = new Set();
     const limit = Math.min(
@@ -2000,6 +2178,8 @@
       await probeCandidates([...candidateMap.values()], true, { relaxed: true });
     }
 
+    await rememberTitleCandidateCache(cacheBucket, selectedTitles);
+
     return {
       remaining,
       selectedTitles
@@ -2041,11 +2221,30 @@
     const remaining = Math.max(0, Number(task?.goal || 0) - Number(task?.progress || 0));
     const viewedChapters = await getViewedChapterIds('reading');
     const blacklistedDirs = await getBlacklistedTitleDirs('reading');
+    const cacheBucket = getCandidateCacheBucket('reading', task);
 
     if (!remaining) {
       return {
         remaining,
         selectedChapters: []
+      };
+    }
+
+    const selectedChapters = [];
+    const selectedChapterIds = new Set();
+    const cachedChapters = await takeCachedTitleCandidates(cacheBucket, Math.max(remaining * 2, 20), {
+      viewedChapters,
+      blacklistedDirs
+    });
+    for (const chapter of cachedChapters) {
+      if (!chapter?.chapterId || selectedChapterIds.has(chapter.chapterId)) continue;
+      selectedChapterIds.add(chapter.chapterId);
+      selectedChapters.push(chapter);
+    }
+    if (selectedChapters.length >= Math.max(remaining * 2, 20)) {
+      return {
+        remaining,
+        selectedChapters
       };
     }
 
@@ -2067,8 +2266,6 @@
       if (!data?.next) break;
     }
 
-    const selectedChapters = [];
-    const selectedChapterIds = new Set();
     const ordered = [...candidateMap.values()].sort((left, right) => {
       if (right.seedScore !== left.seedScore) return right.seedScore - left.seedScore;
       return right.avg_rating - left.avg_rating;
@@ -2092,6 +2289,8 @@
         if (selectedChapters.length >= Math.max(remaining * 2, 20)) break;
       }
     }
+
+    await rememberTitleCandidateCache(cacheBucket, selectedChapters);
 
     return {
       remaining,
@@ -2429,6 +2628,63 @@
 
     history[bucket] = [chapterId, ...current].slice(0, SEARCH_HISTORY_LIMIT * 4);
     await smb.saveSettings({ chapterHistory: history });
+  }
+
+  function getCandidateCacheBucket(prefix, task) {
+    const eventId = Number(task?.event || 0) || 'task';
+    const descriptor = smb.normalizeText(`${task?.name || ''} ${task?.description || ''}`).slice(0, 96);
+    return `${prefix}:${eventId}:${descriptor}`;
+  }
+
+  async function loadTitleCandidateCache(bucket) {
+    const settings = await smb.loadSettings();
+    const cache = settings?.titleCandidateCache && typeof settings.titleCandidateCache === 'object'
+      ? settings.titleCandidateCache
+      : {};
+    const entry = cache[bucket];
+    const ageMs = Date.now() - Number(entry?.savedAt || 0);
+    if (!entry || ageMs > TITLE_CANDIDATE_CACHE_TTL_MS) return [];
+    return Array.isArray(entry.items) ? entry.items : [];
+  }
+
+  async function rememberTitleCandidateCache(bucket, items = []) {
+    const normalized = (Array.isArray(items) ? items : [])
+      .filter(item => item?.dir)
+      .map(item => ({
+        dir: String(item.dir),
+        rus_name: String(item.rus_name || item.title || item.dir),
+        avg_rating: Number(item.avg_rating || 0),
+        chapterId: Number(item.chapterId || item.id || 0) || null,
+        chapterUrl: String(item.chapterUrl || item.url || '')
+      }))
+      .slice(0, TITLE_CANDIDATE_CACHE_LIMIT);
+    if (!normalized.length) return;
+    const settings = await smb.loadSettings();
+    const cache = {
+      ...(settings?.titleCandidateCache && typeof settings.titleCandidateCache === 'object' ? settings.titleCandidateCache : {})
+    };
+    cache[bucket] = {
+      savedAt: Date.now(),
+      items: normalized
+    };
+    await smb.saveSettings({ titleCandidateCache: cache });
+  }
+
+  async function takeCachedTitleCandidates(bucket, limit, options = {}) {
+    const items = await loadTitleCandidateCache(bucket);
+    if (!items.length) return [];
+    const viewedChapters = options.viewedChapters || new Set();
+    const blacklistedDirs = options.blacklistedDirs || new Set();
+    const usedDirs = options.usedDirs || new Set();
+    const selected = [];
+    for (const item of items) {
+      if (!item?.dir || blacklistedDirs.has(item.dir) || usedDirs.has(item.dir)) continue;
+      if (item.chapterId && viewedChapters.has(item.chapterId)) continue;
+      selected.push(item);
+      usedDirs.add(item.dir);
+      if (selected.length >= limit) break;
+    }
+    return selected;
   }
 
   async function loadSimilarHistory() {
@@ -3526,6 +3782,12 @@
 
     const selectedTitles = [];
     const seenDirs = new Set();
+    const cacheBucket = getCandidateCacheBucket(`search:${field}`, task);
+    const cachedTitles = await takeCachedTitleCandidates(cacheBucket, selectionLimit, {
+      blacklistedDirs: new Set([...visitedDirs, ...failedDirs, ...blacklistedDirs]),
+      usedDirs: seenDirs
+    });
+    selectedTitles.push(...cachedTitles);
 
     const coveredTagKeys = new Set();
 
@@ -3586,6 +3848,8 @@
     if (selectedTitles.length < Math.max(remaining, 1)) {
       await collectSelectableTitles(candidates);
     }
+
+    await rememberTitleCandidateCache(cacheBucket, selectedTitles);
 
     return {
       field,
@@ -3979,7 +4243,11 @@
   }
 
   async function getCurrentUserProfile() {
-    return smb.apiGet('/api/v2/users/current/');
+    const payload = await smb.apiGet('/api/v2/users/current/');
+    const user = normalizeCurrentUserPayload(payload);
+    const userId = Number(user?.id || 0) || 0;
+    if (userId) smb.activeAccountId = userId;
+    return user;
   }
 
   function normalizeCurrentUserPayload(payload) {
@@ -6699,6 +6967,7 @@
   let activeTasksPageCleanup = null;
   const activeRunnerLocks = new Set();
   const TASKS_BACKGROUND_REFRESH_MS = 12000;
+  const TASK_RUN_TIMEOUT_MS = 180000;
   const DAILY_TASK_EXP_STORE_KEY = 'smbp-daily-task-exp';
 
   const t = {
@@ -6811,6 +7080,13 @@
     queueError: 'Ошибка',
     queueSkipped: 'Пропущено',
     autoRunDone: (done, failed) => `Автозапуск завершён: ${done} готово, ${failed} ошибок.`,
+    taskStateIdle: 'Ожидает',
+    taskStateReady: 'К сбору',
+    taskStateRunning: 'В работе',
+    taskStateError: 'Ошибка',
+    taskStateManual: 'Ручное',
+    executionHistoryTitle: 'История выполнений',
+    executionHistoryEmpty: 'История пока пустая.',
     settingsDialogDesc: 'Настройки автоматизации задач SailorM.',
     settingsDeckIds: 'Паки для карточек',
     settingsDeckIdsDesc: 'Выбери неоткрытый пак из инвентаря. В списке видно название и количество.',
@@ -7921,6 +8197,22 @@
         flex-direction: column;
         gap: 5px;
       }
+      .smbp-log-group {
+        display: grid;
+        gap: 3px;
+        padding: 5px 6px;
+        border-radius: 8px;
+        background: rgba(255,255,255,.025);
+      }
+      .smbp-log-group-title {
+        color: #eef3fb;
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .smbp-log-entry {
         display: flex;
         align-items: flex-start;
@@ -8180,6 +8472,31 @@
         background: rgba(255,214,110,.09);
         color: #ffe39c;
       }
+      .smbp-badge-state {
+        border-color: rgba(121,190,255,.18);
+        background: rgba(121,190,255,.08);
+        color: #cfe6ff;
+      }
+      .smbp-badge-state--ready {
+        border-color: rgba(121,190,255,.28);
+        background: rgba(121,190,255,.13);
+        color: #cfe6ff;
+      }
+      .smbp-badge-state--running {
+        border-color: rgba(99,214,151,.3);
+        background: rgba(99,214,151,.14);
+        color: #aef0c6;
+      }
+      .smbp-badge-state--error {
+        border-color: rgba(255,120,140,.3);
+        background: rgba(255,120,140,.13);
+        color: #ffc4cc;
+      }
+      .smbp-badge-state--manual {
+        border-color: rgba(255,214,110,.3);
+        background: rgba(255,214,110,.13);
+        color: #ffe39c;
+      }
       .smbp-daily-exp {
         display: flex;
         align-items: center;
@@ -8216,6 +8533,56 @@
         font-size: 13px;
         line-height: 1;
         font-weight: 900;
+      }
+      .smbp-history {
+        display: grid;
+        gap: 7px;
+        padding: 11px 12px;
+        border-radius: 15px;
+        border: 1px solid rgba(255,255,255,.07);
+        background: rgba(255,255,255,.026);
+      }
+      .smbp-history-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        color: #f4f7fc;
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .smbp-history-list {
+        display: grid;
+        gap: 5px;
+        max-height: 118px;
+        overflow: auto;
+      }
+      .smbp-history-entry {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 5px 8px;
+        padding: 7px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.055);
+        background: rgba(255,255,255,.028);
+      }
+      .smbp-history-entry strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #eef3fb;
+        font-size: 12px;
+      }
+      .smbp-history-entry span {
+        color: #99a6ba;
+        font-size: 11px;
+      }
+      .smbp-history-entry small {
+        grid-column: 1 / -1;
+        color: #aab4c6;
+        font-size: 11px;
       }
       .smbp-item small {
         display: -webkit-box;
@@ -8347,8 +8714,8 @@
       .smbp-body[data-page="tasks"] .smbp-item {
         position: relative;
         overflow: visible;
-        padding: 15px 16px;
-        min-height: 116px;
+        padding: 11px 13px;
+        min-height: 92px;
         border-radius: 16px;
         border: 1px solid rgba(130,151,185,.18);
         background:
@@ -8428,40 +8795,40 @@
         transform: rotate(90deg);
       }
       .smbp-body[data-page="tasks"] .smbp-item-head {
-        margin-bottom: 7px;
+        margin-bottom: 5px;
         align-items: center;
       }
       .smbp-body[data-page="tasks"] .smbp-item-head strong {
-        font-size: 16px;
+        font-size: 15px;
         line-height: 1.25;
       }
       .smbp-body[data-page="tasks"] .smbp-item-head span.smbp-progress {
-        padding: 6px 10px;
+        padding: 5px 9px;
         border-color: rgba(255,255,255,.09);
         background: rgba(255,255,255,.065);
         color: #f2f6ff;
       }
       .smbp-body[data-page="tasks"] .smbp-item-meta {
         gap: 7px;
-        margin-bottom: 7px;
+        margin-bottom: 5px;
       }
       .smbp-body[data-page="tasks"] .smbp-badge {
-        padding: 5px 9px;
+        padding: 4px 8px;
         border-color: rgba(255,255,255,.08);
         background: rgba(255,255,255,.055);
         color: #e9effa;
         font-size: 11px;
       }
       .smbp-body[data-page="tasks"] .smbp-item small {
-        display: block;
-        -webkit-line-clamp: unset;
-        -webkit-box-orient: initial;
-        overflow: visible;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
         color: #aeb6c5;
-        font-size: 13px;
+        font-size: 12px;
       }
       .smbp-body[data-page="tasks"] .smbp-action-row {
-        margin-top: 11px;
+        margin-top: 8px;
       }
       .smbp-body[data-page="tasks"] .smbp-link {
         padding: 6px 10px;
@@ -8506,8 +8873,20 @@
       .smbp-body[data-page="tasks"] .smbp-item--error::before {
         background: #ff7c8c;
       }
+      .smbp-body[data-page="tasks"] .smbp-item--error {
+        border-color: rgba(255,120,140,.34);
+        background:
+          radial-gradient(circle at 96% 0%, rgba(255,120,140,.16), transparent 30%),
+          linear-gradient(180deg, rgba(43,25,31,.94), rgba(24,17,22,.94));
+      }
       .smbp-body[data-page="tasks"] .smbp-item--manual::before {
         background: #ffd66e;
+      }
+      .smbp-body[data-page="tasks"] .smbp-item--manual {
+        border-color: rgba(255,214,110,.28);
+        background:
+          radial-gradient(circle at 96% 0%, rgba(255,214,110,.13), transparent 30%),
+          linear-gradient(180deg, rgba(42,37,25,.94), rgba(24,22,17,.94));
       }
       @media (max-width: 760px) {
         .smbp-body[data-page="tasks"] .smbp-status,
@@ -9865,6 +10244,23 @@
     if (state === 'running') node.classList.add('smbp-item--running');
     if (state === 'error') node.classList.add('smbp-item--error');
     if (state === 'manual') node.classList.add('smbp-item--manual');
+    const badge = node.querySelector?.('[data-role="task-state"]');
+    if (badge) {
+      badge.className = `smbp-badge smbp-badge-state smbp-badge-state--${state || 'idle'}`;
+      badge.textContent = getTaskStateLabel(state);
+    }
+  }
+
+  function getTaskStateLabel(state) {
+    return state === 'ready'
+      ? t.taskStateReady
+      : state === 'running'
+        ? t.taskStateRunning
+        : state === 'error'
+          ? t.taskStateError
+          : state === 'manual'
+            ? t.taskStateManual
+            : t.taskStateIdle;
   }
 
   function createSectionHeader(title, description) {
@@ -9999,6 +10395,18 @@
     return isRunnableAutomationTask(freshTask) ? freshTask : null;
   }
 
+  function withTaskTimeout(taskName, promise) {
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = window.setTimeout(() => {
+        reject(new Error(`Таймаут выполнения задачи: ${taskName}`));
+      }, TASK_RUN_TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeout]).finally(() => {
+      if (timer) window.clearTimeout(timer);
+    });
+  }
+
   async function runTaskAutomation(task, progressCb) {
     const lockKey = String(task?.id || task?.event || task?.name || 'task');
     if (activeRunnerLocks.has(lockKey)) {
@@ -10015,45 +10423,46 @@
         };
       }
 
-      return smb.tasks.isWorldTravelTask(task)
-        ? await smb.tasks.runWorldTravelTask(task, progressCb)
+      const runner = smb.tasks.isWorldTravelTask(task)
+        ? smb.tasks.runWorldTravelTask(task, progressCb)
         : smb.tasks.isChapterReadTask(task)
-          ? await smb.tasks.runChapterReadTask(task, progressCb)
+          ? smb.tasks.runChapterReadTask(task, progressCb)
           : smb.tasks.isLikeTask(task)
-            ? await smb.tasks.runLikeTask(task, progressCb)
+            ? smb.tasks.runLikeTask(task, progressCb)
             : smb.tasks.isExpertRatingTask(task)
-              ? await smb.tasks.runExpertRatingTask(task, progressCb)
+              ? smb.tasks.runExpertRatingTask(task, progressCb)
               : smb.tasks.isCommentReplyTask(task)
-                ? await smb.tasks.runCommentReplyTask(task, progressCb)
+                ? smb.tasks.runCommentReplyTask(task, progressCb)
                 : smb.tasks.isOpinionRatingTask(task)
-                  ? await smb.tasks.runOpinionRatingTask(task, progressCb)
+                  ? smb.tasks.runOpinionRatingTask(task, progressCb)
                   : smb.tasks.isAutonomousMemoryTask(task)
-                    ? await smb.tasks.runAutonomousMemoryTask(task, progressCb)
+                    ? smb.tasks.runAutonomousMemoryTask(task, progressCb)
                     : smb.tasks.isDirectGameTask(task)
-                      ? await smb.tasks.runDirectGameTask(task, progressCb)
+                      ? smb.tasks.runDirectGameTask(task, progressCb)
                       : smb.tasks.isCommentTask(task)
-                        ? await smb.tasks.runCommentTask(task, progressCb)
+                        ? smb.tasks.runCommentTask(task, progressCb)
                         : smb.tasks.isSimilarTask(task)
-                          ? await smb.tasks.runSimilarTask(task, progressCb)
+                          ? smb.tasks.runSimilarTask(task, progressCb)
                           : smb.tasks.isPersonalProfileTask(task)
-                            ? await smb.tasks.runPersonalProfileTask(task, progressCb)
+                            ? smb.tasks.runPersonalProfileTask(task, progressCb)
                             : smb.tasks.isProfileTask(task)
-                              ? await smb.tasks.runProfileTask(task, progressCb)
+                              ? smb.tasks.runProfileTask(task, progressCb)
                               : smb.tasks.isFriendRequestTask(task)
-                                ? await smb.tasks.runFriendRequestTask(task, progressCb)
+                                ? smb.tasks.runFriendRequestTask(task, progressCb)
                                 : smb.tasks.isExchangeTask(task)
-                                  ? await smb.tasks.runExchangeTask(task, progressCb)
+                                  ? smb.tasks.runExchangeTask(task, progressCb)
                                   : smb.tasks.isCardUpgradeTask(task)
-                                    ? await smb.tasks.runCardUpgradeTask(task, progressCb)
+                                    ? smb.tasks.runCardUpgradeTask(task, progressCb)
                                     : smb.tasks.isDeckCardTask(task)
-                                      ? await smb.tasks.runNewCardsTask(task, progressCb)
+                                      ? smb.tasks.runNewCardsTask(task, progressCb)
                                       : smb.tasks.isInventoryTask(task)
-                                        ? await smb.tasks.runInventoryTask(task, progressCb)
+                                        ? smb.tasks.runInventoryTask(task, progressCb)
                                         : smb.tasks.isShopPurchaseTask(task)
-                                          ? await smb.tasks.runShopPurchaseTask(task, progressCb)
+                                          ? smb.tasks.runShopPurchaseTask(task, progressCb)
                                           : smb.tasks.isTicketSpendTask(task)
-                                            ? await smb.tasks.runTicketSpendTask(task, progressCb)
-                                            : await smb.tasks.runSearchTask(task, progressCb);
+                                            ? smb.tasks.runTicketSpendTask(task, progressCb)
+                                            : smb.tasks.runSearchTask(task, progressCb);
+      return await withTaskTimeout(task?.name || 'Задача', runner);
     } finally {
       activeRunnerLocks.delete(lockKey);
     }
@@ -10182,6 +10591,7 @@
       </div>
       <div class="smbp-item-meta">
         <span class="smbp-badge">${getTaskTypeLabel(task)}</span>
+        <span class="smbp-badge smbp-badge-state smbp-badge-state--${escapeHtml(state || 'idle')}" data-role="task-state">${escapeHtml(getTaskStateLabel(state))}</span>
         ${rewardExp ? `<span class="smbp-badge smbp-badge-exp">${escapeHtml(t.taskExp(rewardExp))}</span>` : ''}
       </div>
       ${description ? `<small>${description}</small>` : ''}
@@ -10241,6 +10651,34 @@
     const currentTask = overview.querySelector('[data-role="current-task"]');
     const logList = overview.querySelector('[data-role="log-list"]');
     const logEntries = [];
+    const renderLogs = () => {
+      logList.innerHTML = '';
+      if (!logEntries.length) {
+        logList.innerHTML = `<div class="smbp-log-empty">${escapeHtml(t.noActions)}</div>`;
+        return;
+      }
+      const groups = [];
+      for (const entry of logEntries) {
+        let group = groups.find(item => item.name === entry.group);
+        if (!group) {
+          group = { name: entry.group, entries: [] };
+          groups.push(group);
+        }
+        group.entries.push(entry);
+      }
+      for (const group of groups.slice(0, 4)) {
+        const groupNode = document.createElement('div');
+        groupNode.className = 'smbp-log-group';
+        groupNode.innerHTML = `<div class="smbp-log-group-title">${escapeHtml(group.name || t.lastActions)}</div>`;
+        for (const entry of group.entries.slice(0, 3)) {
+          const item = document.createElement('div');
+          item.className = `smbp-log-entry smbp-log-entry--${entry.tone}`;
+          item.textContent = entry.message;
+          groupNode.appendChild(item);
+        }
+        logList.appendChild(groupNode);
+      }
+    };
 
     return {
       status(message, tone = 'idle') {
@@ -10258,17 +10696,12 @@
         currentTask.textContent = name || t.noCurrentTask;
         currentTask.classList.toggle('smbp-muted', !name);
       },
-      pushLog(message, tone = 'idle') {
+      pushLog(message, tone = 'idle', group = '') {
         if (!message) return;
-        logEntries.unshift({ message, tone });
-        if (logEntries.length > 5) logEntries.length = 5;
-        logList.innerHTML = '';
-        for (const entry of logEntries) {
-          const item = document.createElement('div');
-          item.className = `smbp-log-entry smbp-log-entry--${entry.tone}`;
-          item.textContent = entry.message;
-          logList.appendChild(item);
-        }
+        const activeGroup = group || currentTask.textContent || t.lastActions;
+        logEntries.unshift({ message, tone, group: activeGroup });
+        if (logEntries.length > 16) logEntries.length = 16;
+        renderLogs();
       },
       setPrimary(value, label) {
         primaryValue.textContent = value;
@@ -10922,11 +11355,27 @@
     `;
     const dailyExpValue = dailyExpNode.querySelector('[data-role="daily-exp"]');
 
+    const historyNode = document.createElement('div');
+    historyNode.className = 'smbp-history';
+    historyNode.innerHTML = `
+      <div class="smbp-history-head">
+        <span>${escapeHtml(t.executionHistoryTitle)}</span>
+        <span data-role="history-count">0</span>
+      </div>
+      <div class="smbp-history-list" data-role="history-list">
+        <div class="smbp-log-empty">${escapeHtml(t.executionHistoryEmpty)}</div>
+      </div>
+    `;
+    const historyCount = historyNode.querySelector('[data-role="history-count"]');
+    const historyList = historyNode.querySelector('[data-role="history-list"]');
+
     const list = document.createElement('div');
     list.className = 'smbp-list';
     const openSectionKeys = new Set();
     body.appendChild(buttons);
     body.appendChild(dailyExpNode);
+    body.appendChild(historyNode);
+    const queueUi = createQueueHelpers(body);
     body.appendChild(list);
 
     function applyButtonState(button, enabled) {
@@ -10944,6 +11393,62 @@
     async function updateDailyExpNode() {
       const state = await loadDailyTaskExpState();
       dailyExpValue.textContent = `${Number(state.exp || 0)} EXP`;
+    }
+
+    function formatHistoryTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    async function updateExecutionHistoryNode() {
+      const allEntries = typeof smb.loadExecutionHistory === 'function'
+        ? await smb.loadExecutionHistory().catch(() => [])
+        : [];
+      const accountId = Number(smb.activeAccountId || 0) || null;
+      const entries = allEntries
+        .filter(entry => !accountId || !entry.accountId || Number(entry.accountId) === accountId)
+        .slice(0, 5);
+      historyCount.textContent = String(entries.length);
+      historyList.innerHTML = '';
+      if (!entries.length) {
+        historyList.innerHTML = `<div class="smbp-log-empty">${escapeHtml(t.executionHistoryEmpty)}</div>`;
+        return;
+      }
+      for (const entry of entries) {
+        const node = document.createElement('div');
+        node.className = 'smbp-history-entry';
+        const meta = [
+          entry.exp ? `+${entry.exp} EXP` : '',
+          entry.progress || '',
+          entry.status === 'error' ? t.taskStateError : t.statusDone
+        ].filter(Boolean).join(' · ');
+        node.innerHTML = `
+          <strong>${escapeHtml(entry.taskName || 'Задача')}</strong>
+          <span>${escapeHtml(formatHistoryTime(entry.at))}</span>
+          <small>${escapeHtml(meta || entry.message || '')}</small>
+        `;
+        historyList.appendChild(node);
+      }
+    }
+
+    async function recordExecution(task, status, patch = {}) {
+      if (typeof smb.recordTaskExecution !== 'function') return;
+      await smb.recordTaskExecution({
+        taskId: task?.id,
+        taskName: task?.name,
+        status,
+        exp: patch.exp ?? getTaskRewardExp(task),
+        progress: patch.progress || smb.formatTaskProgress(patch.after || task),
+        message: patch.message || '',
+        accountId: Number(smb.activeAccountId || 0) || null
+      }).catch(() => null);
+      await updateExecutionHistoryNode();
     }
 
     function updateOverview(state, options = {}) {
@@ -11104,12 +11609,14 @@
             syncTaskNodes(freshState);
             ui.status(`Награда забрана: ${task.name}`, 'done');
             ui.pushLog(`Награда забрана: ${task.name}`, 'done');
+            await recordExecution(task, 'claimed', { message: 'Награда забрана' });
           } catch (error) {
             runningTaskId = null;
             errorTaskId = task.id;
             setTaskState(node, 'error');
             ui.status(t.taskFailed(error.message || error), 'error');
             ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
+            await recordExecution(task, 'error', { exp: 0, message: error.message || String(error) });
           }
         });
 
@@ -11187,6 +11694,11 @@
             const loadedMessage = t.loaded(task.name, result.after.progress, result.after.goal);
             ui.status(loadedMessage, resultTone);
             ui.pushLog(loadedMessage, resultTone);
+            await recordExecution(task, resultTone === 'done' ? 'done' : 'partial', {
+              after: result.after,
+              exp: result?.claimed ? getTaskRewardExp(result.before || task) : 0,
+              message: loadedMessage
+            });
             if (smb.tasks.isLikeTask(task) && Array.isArray(result.relatedTasks) && result.relatedTasks.length) {
               const relatedSummary = formatRelatedTaskSummary(result.relatedTasks);
               if (relatedSummary) {
@@ -11206,6 +11718,7 @@
             setTaskState(node, 'error');
             ui.status(t.taskFailed(error.message || error), 'error');
             ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
+            await recordExecution(task, 'error', { exp: 0, message: error.message || String(error) });
           }
         });
 
@@ -11233,6 +11746,7 @@
         syncActionButtons();
         updateOverview(state);
         await updateDailyExpNode();
+        await updateExecutionHistoryNode();
 
         if (!state.tasks.length) {
           list.innerHTML = `<div class="smbp-item">${t.noTasks}</div>`;
@@ -11283,6 +11797,7 @@
         updateSummaryNodes(state);
         syncTaskNodes(state);
         await updateDailyExpNode();
+        await updateExecutionHistoryNode();
       } catch (_error) {
       } finally {
         backgroundRefreshInFlight = false;
@@ -11331,6 +11846,9 @@
         } else {
           await recordDailyTaskExp(result.ready);
           await updateDailyExpNode();
+          for (const task of result.ready) {
+            await recordExecution(task, 'claimed', { message: 'Готовая награда забрана' });
+          }
           ui.status(t.claimedTasks(result.claimed), 'done');
           ui.pushLog(t.claimedTasks(result.claimed), 'done');
           smb.toast(t.claimedTasks(result.claimed));
@@ -11360,15 +11878,18 @@
           ui.status(t.noAutoTasks, 'idle');
           return;
         }
+        queueUi.set(queue);
         for (const queuedTask of queue) {
           state = await loadBattlepassState({ force: true }).catch(() => state);
           const task = findFreshRunnableTask(state, queuedTask);
           if (!task) {
             ui.pushLog(`${queuedTask.name}: уже выполнено или больше не требует запуска.`, 'idle');
+            queueUi.update(queuedTask.id, 'skipped', queuedTask.name);
             continue;
           }
           runningTaskId = task.id;
           errorTaskId = null;
+          queueUi.update(task.id, 'running', task.name);
           ui.setCurrentTask(task.name);
           ui.status(t.runningTask(task.name), 'running');
           ui.pushLog(t.runningTask(task.name), 'running');
@@ -11386,12 +11907,20 @@
               await updateDailyExpNode();
             }
             done += 1;
+            queueUi.update(task.id, 'done', task.name);
             const after = result?.after || task;
             ui.pushLog(t.loaded(task.name, Number(after.progress || 0), Number(after.goal || 0)), 'done');
+            await recordExecution(task, smb.isTaskDone(after) || result?.claimed ? 'done' : 'partial', {
+              after,
+              exp: result?.claimed ? getTaskRewardExp(result.before || task) : 0,
+              message: t.loaded(task.name, Number(after.progress || 0), Number(after.goal || 0))
+            });
           } catch (error) {
             failed += 1;
             errorTaskId = task.id;
+            queueUi.update(task.id, 'error', task.name);
             ui.pushLog(`${task.name}: ${error.message || error}`, 'error');
+            await recordExecution(task, 'error', { exp: 0, message: error.message || String(error) });
           } finally {
             runningTaskId = null;
             state = await loadBattlepassState({ force: true }).catch(() => state);

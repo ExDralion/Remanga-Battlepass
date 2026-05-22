@@ -9,8 +9,27 @@
 
   const STORE_KEY = 'smbp-settings';
   const DIAGNOSTICS_KEY = 'smbp-diagnostics';
+  const EXECUTION_HISTORY_KEY = 'smbp-execution-history';
   const VERSION = '1.0.0';
   const MAX_DIAGNOSTIC_ENTRIES = 120;
+  const MAX_EXECUTION_HISTORY_ENTRIES = 80;
+  const ACCOUNT_SCOPED_SETTING_KEYS = new Set([
+    'deckTaskPreferredDeckIds',
+    'searchHistory',
+    'failedSearchHistory',
+    'titleBlacklist',
+    'chapterHistory',
+    'similarHistory',
+    'commentHistory',
+    'commentVoteHistory',
+    'commentReplyHistory',
+    'profileHistory',
+    'friendRequestHistory',
+    'guildRequestHistory',
+    'exchangeTargetHistory',
+    'exchangeTargetHistoryOwnerUserId',
+    'titleCandidateCache'
+  ]);
   const DEFAULT_SETTINGS = {
     rewardsHidePaid: false,
     inlineTaskButtonsEnabled: true,
@@ -33,7 +52,8 @@
     profileHistory: [],
     friendRequestHistory: [],
     guildRequestHistory: [],
-    exchangeTargetHistory: []
+    exchangeTargetHistory: [],
+    titleCandidateCache: {}
   };
 
   const GAME_IDS = {
@@ -114,22 +134,68 @@
     return String(fallback || '').trim();
   }
 
-  async function api(path, { method = 'GET', body, maxRequestsPerMinute } = {}) {
+  function compactDetails(value, limit = 700) {
+    if (value === undefined || value === null) return value;
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    return text.length > limit ? `${text.slice(0, limit)}...` : text;
+  }
+
+  async function recordApiDiagnostic(entry) {
+    try {
+      await recordDiagnostic({
+        level: entry.level || 'error',
+        scope: 'api',
+        type: entry.type || 'request_failed',
+        message: entry.message || 'API request failed',
+        details: {
+          method: entry.method,
+          path: entry.path,
+          status: entry.status || null,
+          attempt: entry.attempt || null,
+          requestBody: compactDetails(entry.requestBody),
+          response: compactDetails(entry.response)
+        }
+      });
+    } catch (_error) {
+    }
+  }
+
+  async function api(path, { method = 'GET', body, maxRequestsPerMinute, retryUnsafe = false } = {}) {
     const headers = {};
     if (body !== undefined) headers['content-type'] = 'application/json';
     const normalizedMethod = String(method || 'GET').toUpperCase();
+    const retryStatuses = new Set([429, 502, 503, 504]);
 
     const runRequest = async () => {
-      const maxAttempts = normalizedMethod === 'GET' ? 3 : 1;
+      const maxAttempts = normalizedMethod === 'GET' || retryUnsafe ? 3 : 1;
       let lastError = null;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        const response = await fetch(path, {
-          method,
-          headers,
-          credentials: 'include',
-          body: body !== undefined ? JSON.stringify(body) : undefined
-        });
+        let response = null;
+        try {
+          response = await fetch(path, {
+            method,
+            headers,
+            credentials: 'include',
+            body: body !== undefined ? JSON.stringify(body) : undefined
+          });
+        } catch (error) {
+          lastError = error;
+          await recordApiDiagnostic({
+            level: attempt < maxAttempts ? 'warn' : 'error',
+            type: 'network_failed',
+            message: error?.message || String(error),
+            method: normalizedMethod,
+            path,
+            attempt,
+            requestBody: body
+          });
+          if (attempt < maxAttempts) {
+            await sleep(450 * attempt);
+            continue;
+          }
+          throw error;
+        }
 
         if (!response.ok) {
           const text = await response.text().catch(() => '');
@@ -141,7 +207,18 @@
             message = text || message;
           }
           lastError = new Error(`${message}${message.includes('HTTP ') ? '' : ` (HTTP ${response.status})`}`);
-          if (normalizedMethod === 'GET' && [429, 502, 503, 504].includes(Number(response.status)) && attempt < maxAttempts) {
+          await recordApiDiagnostic({
+            level: retryStatuses.has(Number(response.status)) && attempt < maxAttempts ? 'warn' : 'error',
+            type: 'http_failed',
+            message: lastError.message,
+            method: normalizedMethod,
+            path,
+            status: Number(response.status),
+            attempt,
+            requestBody: body,
+            response: text
+          });
+          if (retryStatuses.has(Number(response.status)) && attempt < maxAttempts) {
             await sleep(450 * attempt);
             continue;
           }
@@ -206,16 +283,51 @@
     if (!chrome?.storage?.local) return { ...DEFAULT_SETTINGS };
     return new Promise(resolve => {
       chrome.storage.local.get([STORE_KEY], data => {
-        resolve({ ...DEFAULT_SETTINGS, ...(data?.[STORE_KEY] || {}) });
+        const raw = data?.[STORE_KEY] || {};
+        const accountId = String(window.SMBP?.activeAccountId || '');
+        const accountProfiles = raw?.accountProfiles && typeof raw.accountProfiles === 'object' ? raw.accountProfiles : {};
+        const accountSettings = accountId && accountProfiles[accountId] && typeof accountProfiles[accountId] === 'object'
+          ? accountProfiles[accountId]
+          : {};
+        resolve({ ...DEFAULT_SETTINGS, ...raw, ...accountSettings, accountProfiles });
       });
     });
   }
 
   async function saveSettings(patch) {
-    const next = { ...(await loadSettings()), ...patch };
-    if (!chrome?.storage?.local) return next;
+    if (!chrome?.storage?.local) return { ...(await loadSettings()), ...patch };
     return new Promise(resolve => {
-      chrome.storage.local.set({ [STORE_KEY]: next }, () => resolve(next));
+      chrome.storage.local.get([STORE_KEY], data => {
+        const raw = data?.[STORE_KEY] || {};
+        const accountId = String(window.SMBP?.activeAccountId || '');
+        const accountProfiles = raw?.accountProfiles && typeof raw.accountProfiles === 'object'
+          ? { ...raw.accountProfiles }
+          : {};
+        const globalPatch = {};
+        const scopedPatch = {};
+
+        for (const [key, value] of Object.entries(patch || {})) {
+          if (accountId && ACCOUNT_SCOPED_SETTING_KEYS.has(key)) scopedPatch[key] = value;
+          else globalPatch[key] = value;
+        }
+
+        if (accountId && Object.keys(scopedPatch).length) {
+          accountProfiles[accountId] = {
+            ...(accountProfiles[accountId] || {}),
+            ...scopedPatch
+          };
+        }
+
+        const nextRaw = {
+          ...raw,
+          ...globalPatch,
+          accountProfiles
+        };
+
+        chrome.storage.local.set({ [STORE_KEY]: nextRaw }, () => {
+          resolve({ ...DEFAULT_SETTINGS, ...nextRaw, ...(accountId ? accountProfiles[accountId] : {}) });
+        });
+      });
     });
   }
 
@@ -261,6 +373,44 @@
 
   async function clearDiagnostics() {
     return saveDiagnostics([]);
+  }
+
+  async function loadExecutionHistory() {
+    if (!chrome?.storage?.local) return [];
+    return new Promise(resolve => {
+      chrome.storage.local.get([EXECUTION_HISTORY_KEY], data => {
+        const entries = Array.isArray(data?.[EXECUTION_HISTORY_KEY]) ? data[EXECUTION_HISTORY_KEY] : [];
+        resolve(entries);
+      });
+    });
+  }
+
+  async function saveExecutionHistory(entries) {
+    const normalizedEntries = Array.isArray(entries)
+      ? entries.slice(0, MAX_EXECUTION_HISTORY_ENTRIES)
+      : [];
+    if (!chrome?.storage?.local) return normalizedEntries;
+    return new Promise(resolve => {
+      chrome.storage.local.set({ [EXECUTION_HISTORY_KEY]: normalizedEntries }, () => resolve(normalizedEntries));
+    });
+  }
+
+  async function recordTaskExecution(entry = {}) {
+    const nextEntry = {
+      id: String(entry.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+      at: entry.at || new Date().toISOString(),
+      accountId: Number(entry.accountId || window.SMBP?.activeAccountId || 0) || null,
+      taskId: Number(entry.taskId || 0) || null,
+      taskName: String(entry.taskName || 'Задача'),
+      status: String(entry.status || 'done'),
+      exp: Number(entry.exp || 0) || 0,
+      progress: String(entry.progress || ''),
+      message: String(entry.message || '').trim()
+    };
+    const current = await loadExecutionHistory();
+    current.unshift(nextEntry);
+    await saveExecutionHistory(current);
+    return nextEntry;
   }
 
   function createToastRoot() {
@@ -323,6 +473,7 @@
   window.SMBP = {
     STORE_KEY,
     DIAGNOSTICS_KEY,
+    EXECUTION_HISTORY_KEY,
     VERSION,
     DEFAULT_SETTINGS,
     GAME_IDS,
@@ -348,6 +499,9 @@
     saveDiagnostics,
     recordDiagnostic,
     clearDiagnostics,
+    loadExecutionHistory,
+    saveExecutionHistory,
+    recordTaskExecution,
     toast
   };
 })();
